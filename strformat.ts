@@ -1,3 +1,14 @@
+// Coerce value as string, returns undefined if we can't use the value
+function coerceValue(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (value?.toString) {
+    return value.toString()
+  }
+}
+
 export function strformat(input: string, context: Record<string, unknown>): string {
   let output = input
 
@@ -13,30 +24,24 @@ export function strformat(input: string, context: Record<string, unknown>): stri
         throw new Error(`${fnKey} is not a function`)
       }
 
-      const value = fn(...fnArgs.split(','))
-
-      if (typeof value === 'string') {
+      const value = coerceValue(fn(...fnArgs.split(',')))
+      if (typeof value === 'undefined') {
+        throw new Error(`Cannot use returned value from context function`)
+      } else {
         return value
       }
-      if (value?.toString) {
-        return value.toString()
-      }
-      throw new Error(`Cannot use returned value from context function`)
     } else {
-      let value = context[key]
-      if (typeof value === 'function') {
-        value = value()
+      let ctxValue = context[key]
+      if (typeof ctxValue === 'function') {
+        ctxValue = ctxValue()
       }
 
-      if (typeof value === 'string') {
+      const value = coerceValue(ctxValue)
+      if (typeof value === 'undefined') {
+        throw new Error(`Cannot use value from context`)
+      } else {
         return value
       }
-
-      if (value?.toString) {
-        return value.toString()
-      }
-
-      throw new Error(`Cannot use value from context`)
     }
   })
 
