@@ -9,24 +9,44 @@ function coerceValue(value: unknown): string | undefined {
   }
 }
 
+function traverseKeys(keys: string[], obj: any): unknown {
+  if (keys.length === 0) {
+    return undefined
+  }
+
+  if (keys.length === 1) {
+    return obj?.[keys[0]] ?? undefined
+  }
+
+  return traverseKeys(keys.slice(1), obj?.[keys[0]] ?? undefined)
+}
+
+function traversePath(path: string, obj: any): unknown {
+  if (path.startsWith('.')) {
+    return traverseKeys(path.slice(1).split('.'), obj)
+  }
+
+  return traverseKeys(path.split('.'), obj)
+}
+
 function evalValueFromContext(key: string, context: Record<string, unknown>) {
   const matchKeyPattern = /^(.*?):(.*)$/.exec(key)
   if (matchKeyPattern) {
     const [fnKey, fnArgs] = matchKeyPattern.slice(1)
 
-    const fn = context[fnKey]
+    const fn = traversePath(fnKey, context)
     if (typeof fn !== 'function') {
       throw new Error(`${fnKey} is not a function`)
     }
 
-    const value = coerceValue(fn(...fnArgs.split(',')))
+    const value = coerceValue(fn(...fnArgs.split(',').map(v => v.startsWith('@') ? evalValueFromContext(v.slice(1), context) : v)))
     if (typeof value === 'undefined') {
       throw new Error(`Cannot use returned value from context function`)
     } else {
       return value
     }
   } else {
-    let ctxValue = context[key]
+    let ctxValue = traversePath(key, context)
     if (typeof ctxValue === 'function') {
       ctxValue = ctxValue()
     }
@@ -58,9 +78,7 @@ export function strformat(input: string, context: Record<string, unknown>): stri
           const [fnKey, fnArgs] = matchKeyPattern.slice(1)
 
           if (fnKey === '') {
-            currentValue = fnArgs
-            // Later when implement dot
-            // currentValue = evalValueFromContext(fnArgs, context)
+            currentValue = fnArgs.startsWith('@') ? evalValueFromContext(fnArgs.slice(1), context) : fnArgs
             continue
           }
 

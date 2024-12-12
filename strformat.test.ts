@@ -94,4 +94,69 @@ describe('strformat', () => {
 
     expect(strformat(input, context)).toBe('DEFAULT.txt')
   })
+
+  it('can use path in value', () => {
+    const input = '[file.name].[ext]'
+    const context = {
+      file: {
+        name: 'foo'
+      },
+      ext: 'txt'
+    }
+
+    expect(strformat(input, context)).toBe('foo.txt')
+  })
+
+  it('can use array index in value', () => {
+    const input = '[files.1.name].[ext]'
+    const context = {
+      files: [
+        { name: 'foo' },
+        { name: 'bar' },
+      ],
+      ext: 'txt'
+    }
+
+    expect(strformat(input, context)).toBe('bar.txt')
+  })
+
+  it('can traverse deep and return default value', () => {
+    const input = '[files.1.type|:default].[ext]'
+    const context = {
+      files: [
+        { name: 'foo' },
+        { name: 'bar' },
+      ],
+      ext: 'txt'
+    }
+
+    expect(strformat(input, context)).toBe('default.txt')
+  })
+
+  it('can refer to context in parameters', () => {
+    const input = '[hash:@config.length].[ext]'
+    const context = {
+      hash: (length: string) => 'b4f234798dbd8435c44412ff121c9726'.slice(0, Number(length)),
+      ext: 'txt',
+      config: {
+        length: 8
+      }
+    }
+
+    expect(strformat(input, context)).toBe('b4f23479.txt')
+  })
+
+  it('can refer to context in default value', () => {
+    const input = '[hash:@config.length|:@config.default].[ext]'
+    const context = {
+      hash: (length: string) => 'b4f234798dbd8435c44412ff121c9726'.slice(0, Number(length)),
+      ext: 'txt',
+      config: {
+        default: 'default',
+        length: 8
+      }
+    }
+
+    expect(strformat(input, context)).toBe('default.txt')
+  })
 })
