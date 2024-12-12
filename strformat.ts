@@ -30,7 +30,7 @@ function traversePath(path: string, obj: any): unknown {
 }
 
 function evalValueFromContext(key: string, context: Record<string, unknown>) {
-  const matchKeyPattern = /^(.*?):(.*)$/.exec(key)
+  const matchKeyPattern = /^(.*?)!(.*)$/.exec(key)
   if (matchKeyPattern) {
     const [fnKey, fnArgs] = matchKeyPattern.slice(1)
 
@@ -61,7 +61,7 @@ export function strformat(input: string, context: Record<string, unknown>): stri
   output = input.replaceAll(/\[.*?\]/g, (pattern) => {
     const key = pattern.slice(1, -1)
 
-    if (!key.includes('|')) {
+    if (!key.includes('#')) {
       const value = evalValueFromContext(key, context)
       if (typeof value === 'undefined') {
         throw new Error(`Cannot use value from context`)
@@ -69,11 +69,11 @@ export function strformat(input: string, context: Record<string, unknown>): stri
         return value
       }
     } else {
-      const [firstKey, ...restKeys] = key.split('|')
+      const [firstKey, ...restKeys] = key.split('#')
 
       let currentValue: string | undefined = evalValueFromContext(firstKey, context)
       for (const key of restKeys) {
-        const matchKeyPattern = /^(.*?):(.*)$/.exec(key)
+        const matchKeyPattern = /^(.*?)!(.*)$/.exec(key)
         if (matchKeyPattern) {
           const [fnKey, fnArgs] = matchKeyPattern.slice(1)
 
