@@ -75,4 +75,23 @@ describe('strformat', () => {
 
     expect(strformat(input, context)).toBe('OOB.txt')
   })
+
+  it('can provide default value', () => {
+    const input = '[filename|:default].[ext]'
+    const context = {
+      ext: 'txt'
+    }
+
+    expect(strformat(input, context)).toBe('default.txt')
+  })
+
+  it('default value walks through the pipe', () => {
+    const input = '[filename|:default|upper].[ext]'
+    const context = {
+      ext: 'txt',
+      upper: (str: string) => str.toUpperCase()
+    }
+
+    expect(strformat(input, context)).toBe('DEFAULT.txt')
+  })
 })

@@ -31,12 +31,7 @@ function evalValueFromContext(key: string, context: Record<string, unknown>) {
       ctxValue = ctxValue()
     }
 
-    const value = coerceValue(ctxValue)
-    if (typeof value === 'undefined') {
-      throw new Error(`Cannot use value from context`)
-    } else {
-      return value
-    }
+    return coerceValue(ctxValue)
   }
 }
 
@@ -47,20 +42,32 @@ export function strformat(input: string, context: Record<string, unknown>): stri
     const key = pattern.slice(1, -1)
 
     if (!key.includes('|')) {
-      return evalValueFromContext(key, context)
+      const value = evalValueFromContext(key, context)
+      if (typeof value === 'undefined') {
+        throw new Error(`Cannot use value from context`)
+      } else {
+        return value
+      }
     } else {
       const [firstKey, ...restKeys] = key.split('|')
 
       let currentValue: string | undefined = evalValueFromContext(firstKey, context)
       for (const key of restKeys) {
-        // Ignore key if current value is undefined (we will have special values later)
-        if (typeof currentValue === 'undefined') {
-          continue
-        }
-
         const matchKeyPattern = /^(.*?):(.*)$/.exec(key)
         if (matchKeyPattern) {
           const [fnKey, fnArgs] = matchKeyPattern.slice(1)
+
+          if (fnKey === '') {
+            currentValue = fnArgs
+            // Later when implement dot
+            // currentValue = evalValueFromContext(fnArgs, context)
+            continue
+          }
+
+          // Ignore key if current value is undefined (we will have special values later)
+          if (typeof currentValue === 'undefined') {
+            continue
+          }
 
           const fn = context[fnKey]
           if (typeof fn !== 'function') {
@@ -69,6 +76,11 @@ export function strformat(input: string, context: Record<string, unknown>): stri
 
           currentValue = coerceValue(fn(currentValue, ...fnArgs.split(',')))
         } else {
+          // Ignore key if current value is undefined (we will have special values later)
+          if (typeof currentValue === 'undefined') {
+            continue
+          }
+
           const fn = context[key]
           if (typeof fn !== 'function') {
             throw new Error(`${key} is not a function`)
