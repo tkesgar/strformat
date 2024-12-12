@@ -1,0 +1,8 @@
+{
+  "name": "@tkesgar/strformat",
+  "module": "strformat.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "^1.1.14"
+  }
+}
