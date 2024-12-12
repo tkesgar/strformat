@@ -41,4 +41,38 @@ describe('strformat', () => {
 
     expect(strformat(input, context)).toBe('foo_123456789.txt')
   })
+
+  it('should pipe the value to transform function', () => {
+    const input = '[filename|upper].[ext]'
+    const context = {
+      filename: 'foo',
+      ext: 'txt',
+      upper: (str: string) => str.toUpperCase()
+    }
+
+    expect(strformat(input, context)).toBe('FOO.txt')
+  })
+
+  it('should pass arguments to transform function', () => {
+    const input = '[filename|slice:1,4].[ext]'
+    const context = {
+      filename: 'foobar',
+      ext: 'txt',
+      slice: (str: string, a: string, b: string) => str.slice(Number(a), Number(b))
+    }
+
+    expect(strformat(input, context)).toBe('oob.txt')
+  })
+
+  it('should pass multiple pipes', () => {
+    const input = '[filename|slice:1,4|upper].[ext]'
+    const context = {
+      filename: 'foobar',
+      ext: 'txt',
+      slice: (str: string, a: string, b: string) => str.slice(Number(a), Number(b)),
+      upper: (str: string) => str.toUpperCase()
+    }
+
+    expect(strformat(input, context)).toBe('OOB.txt')
+  })
 })
