@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test"
-import { createStrformat, strformat } from "./strformat"
+import { createStrformat, strformat, strformatfs } from "./strformat"
 
 describe('strformat', () => {
   it('should render value from context', () => {
@@ -23,7 +23,7 @@ describe('strformat', () => {
   })
 
   it('should call function with 1 parameter', () => {
-    const input = '[filename!123].[ext]'
+    const input = '[filename:123].[ext]'
     const context = {
       filename: (x: string) => `foo_${x}`,
       ext: 'txt'
@@ -33,7 +33,7 @@ describe('strformat', () => {
   })
 
   it('should call function with 3 parameters', () => {
-    const input = '[filename!123,456,789].[ext]'
+    const input = '[filename:123,456,789].[ext]'
     const context = {
       filename: (...args: string[]) => `foo_${args.join('')}`,
       ext: 'txt'
@@ -43,7 +43,7 @@ describe('strformat', () => {
   })
 
   it('should pipe the value to transform function', () => {
-    const input = '[filename#upper].[ext]'
+    const input = '[filename|upper].[ext]'
     const context = {
       filename: 'foo',
       ext: 'txt',
@@ -54,7 +54,7 @@ describe('strformat', () => {
   })
 
   it('should pass arguments to transform function', () => {
-    const input = '[filename#slice!1,4].[ext]'
+    const input = '[filename|slice:1,4].[ext]'
     const context = {
       filename: 'foobar',
       ext: 'txt',
@@ -65,7 +65,7 @@ describe('strformat', () => {
   })
 
   it('should pass multiple pipes', () => {
-    const input = '[filename#slice!1,4#upper].[ext]'
+    const input = '[filename|slice:1,4|upper].[ext]'
     const context = {
       filename: 'foobar',
       ext: 'txt',
@@ -77,7 +77,7 @@ describe('strformat', () => {
   })
 
   it('can provide default value', () => {
-    const input = '[filename#!default].[ext]'
+    const input = '[filename|:default].[ext]'
     const context = {
       ext: 'txt'
     }
@@ -86,7 +86,7 @@ describe('strformat', () => {
   })
 
   it('default value walks through the pipe', () => {
-    const input = '[filename#!default#upper].[ext]'
+    const input = '[filename|:default|upper].[ext]'
     const context = {
       ext: 'txt',
       upper: (str: string) => str.toUpperCase()
@@ -121,7 +121,7 @@ describe('strformat', () => {
   })
 
   it('can traverse deep and return default value', () => {
-    const input = '[files.1.type#!default].[ext]'
+    const input = '[files.1.type|:default].[ext]'
     const context = {
       files: [
         { name: 'foo' },
@@ -134,7 +134,7 @@ describe('strformat', () => {
   })
 
   it('can refer to context in parameters', () => {
-    const input = '[hash!@config.length].[ext]'
+    const input = '[hash:@config.length].[ext]'
     const context = {
       hash: (length: string) => 'b4f234798dbd8435c44412ff121c9726'.slice(0, Number(length)),
       ext: 'txt',
@@ -147,7 +147,7 @@ describe('strformat', () => {
   })
 
   it('can refer to context in default value', () => {
-    const input = '[hash!@config.length#!@config.default].[ext]'
+    const input = '[hash:@config.length|:@config.default].[ext]'
     const context = {
       hash: (length: string) => 'b4f234798dbd8435c44412ff121c9726'.slice(0, Number(length)),
       ext: 'txt',
@@ -161,6 +161,23 @@ describe('strformat', () => {
   })
 })
 
+describe('strformatfs', () => {
+  it('should use filesystem-safe delimiters', () => {
+    const input = '[hash!@config.length#!@config.default#slice!0,3].[ext]'
+    const context = {
+      hash: (length: string) => 'b4f234798dbd8435c44412ff121c9726'.slice(0, Number(length)),
+      ext: 'txt',
+      config: {
+        default: 'default',
+        length: 8
+      },
+      slice: (str: string, a: string, b: string) => str.slice(Number(a), Number(b))
+    }
+
+    expect(strformatfs(input, context)).toBe('def.txt')
+  })
+})
+
 describe('createStrformat', () => {
   it('can customize strformat', () => {
     const strformat = createStrformat({
@@ -170,20 +187,22 @@ describe('createStrformat', () => {
         call: '?',
         params: ';',
         ctx: '$',
-        path: '/'
+        path: '/',
+        pipe: '#'
       }
     })
 
-    const input = '<hash?$config/length#?$config/default>.<ext>'
+    const input = '<hash?$config/length#?$config/default#slice?0;3>.<ext>'
     const context = {
       hash: (length: string) => 'b4f234798dbd8435c44412ff121c9726'.slice(0, Number(length)),
       ext: 'txt',
       config: {
         default: 'default',
         length: 8
-      }
+      },
+      slice: (str: string, a: string, b: string) => str.slice(Number(a), Number(b))
     }
 
-    expect(strformat(input, context)).toBe('default.txt')
+    expect(strformat(input, context)).toBe('def.txt')
   })
 })

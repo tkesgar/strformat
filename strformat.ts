@@ -31,16 +31,18 @@ interface CreateStrformatOpts {
     params?: string
     ctx?: string
     path?: string
+    pipe?: string
   }
 }
 
 export function createStrformat(opts: CreateStrformatOpts = {}): StrformatFn {
   const DELIM_START = opts.delimiters?.start ?? '['
   const DELIM_END = opts.delimiters?.end ?? ']'
-  const DELIM_CALL = opts.delimiters?.call ?? '!'
+  const DELIM_CALL = opts.delimiters?.call ?? ':'
   const DELIM_PARAMS = opts.delimiters?.params ?? ','
   const DELIM_CTX = opts.delimiters?.ctx ?? '@'
   const DELIM_PATH = opts.delimiters?.path ?? '.'
+  const DELIM_PIPE = opts.delimiters?.pipe ?? '|'
 
   const RE_KEY_PATTERN = new RegExp(`^(.*?)\\${DELIM_CALL}(.*)$`)
 
@@ -48,55 +50,55 @@ export function createStrformat(opts: CreateStrformatOpts = {}): StrformatFn {
     return traverseKeys(path.split(DELIM_PATH), obj)
   }
 
-  return (input: string, context: Record<string, unknown>): string => {
-    function evalValueFromContext(key: string) {
-      const matchKeyPattern = RE_KEY_PATTERN.exec(key)
-      if (matchKeyPattern) {
-        const [fnKey, fnArgs] = matchKeyPattern.slice(1)
+  function evalValueFromContext(key: string, context: Record<string, unknown>) {
+    const matchKeyPattern = RE_KEY_PATTERN.exec(key)
+    if (matchKeyPattern) {
+      const [fnKey, fnArgs] = matchKeyPattern.slice(1)
 
-        const fn = traversePath(fnKey, context)
-        if (typeof fn !== 'function') {
-          throw new Error(`${fnKey} is not a function`)
-        }
-
-        const value = coerceToString(fn(...fnArgs.split(DELIM_PARAMS).map(v => v.startsWith(DELIM_CTX) ? evalValueFromContext(v.slice(1)) : v)))
-        if (typeof value === 'undefined') {
-          throw new Error(`Cannot use returned value from context function`)
-        } else {
-          return value
-        }
-      } else {
-        let ctxValue = traversePath(key, context)
-        if (typeof ctxValue === 'function') {
-          ctxValue = ctxValue()
-        }
-
-        return coerceToString(ctxValue)
+      const fn = traversePath(fnKey, context)
+      if (typeof fn !== 'function') {
+        throw new Error(`${fnKey} is not a function`)
       }
-    }
 
+      const value = coerceToString(fn(...fnArgs.split(DELIM_PARAMS).map(v => v.startsWith(DELIM_CTX) ? evalValueFromContext(v.slice(1), context) : v)))
+      if (typeof value === 'undefined') {
+        throw new Error(`Cannot use returned value from context function`)
+      } else {
+        return value
+      }
+    } else {
+      let ctxValue = traversePath(key, context)
+      if (typeof ctxValue === 'function') {
+        ctxValue = ctxValue()
+      }
+
+      return coerceToString(ctxValue)
+    }
+  }
+
+  return (input: string, context: Record<string, unknown>): string => {
     const regexInput = new RegExp(`\\${DELIM_START}.*?\\${DELIM_END}`, 'g')
     return input.replaceAll(regexInput, (pattern) => {
       const key = pattern.slice(1, -1)
 
-      if (!key.includes('#')) {
-        const value = evalValueFromContext(key)
+      if (!key.includes(DELIM_PIPE)) {
+        const value = evalValueFromContext(key, context)
         if (typeof value === 'undefined') {
           throw new Error(`Cannot use value from context`)
         } else {
           return value
         }
       } else {
-        const [firstKey, ...restKeys] = key.split('#')
+        const [firstKey, ...restKeys] = key.split(DELIM_PIPE)
 
-        let currentValue: string | undefined = evalValueFromContext(firstKey)
+        let currentValue: string | undefined = evalValueFromContext(firstKey, context)
         for (const key of restKeys) {
           const matchKeyPattern = RE_KEY_PATTERN.exec(key)
           if (matchKeyPattern) {
             const [fnKey, fnArgs] = matchKeyPattern.slice(1)
 
             if (fnKey === '') {
-              currentValue = fnArgs.startsWith(DELIM_CTX) ? evalValueFromContext(fnArgs.slice(1)) : fnArgs
+              currentValue = fnArgs.startsWith(DELIM_CTX) ? evalValueFromContext(fnArgs.slice(1), context) : fnArgs
               continue
             }
 
@@ -137,3 +139,10 @@ export function createStrformat(opts: CreateStrformatOpts = {}): StrformatFn {
 }
 
 export const strformat = createStrformat()
+
+export const strformatfs = createStrformat({
+  delimiters: {
+    call: '!',
+    pipe: '#'
+  }
+})
