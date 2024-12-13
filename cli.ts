@@ -5,6 +5,7 @@ import fs from "node:fs"
 import os from "node:os"
 import crypto from "node:crypto"
 import path from "node:path"
+import dayjs from "dayjs"
 
 program
   .name('strformat')
@@ -73,7 +74,10 @@ const context: Record<string, unknown> = {
   lower: (_str: string) => _str.toLowerCase(),
   trim: (_str: string) => _str.trim(),
   slug: (_str: string) => _str.replaceAll(/\W/g, '-'),
-  oneline: (_str: string) => _str.replaceAll('\n', '')
+  oneline: (_str: string) => _str.replaceAll('\n', ''),
+  day: (_format?: string) => {
+    return dayjs().format(_format?.replaceAll('<', '[').replaceAll('>', ']'))
+  }
 }
 
 if (opts.file) {
