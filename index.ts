@@ -9,4 +9,4 @@ export const strformatfs = createStrformat({
   }
 })
 
-export { createStrformat }
+export { createStrformat, type Strformat } from "./strformat"

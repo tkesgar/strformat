@@ -39,7 +39,7 @@ export function traverseKeys(keys: string[], obj: any): unknown {
   return traverseKeys(keys.slice(1), obj?.[keys[0]] ?? undefined)
 }
 
-export type StrformatFn = (input: string, context: Record<string, unknown>) => string
+export type Strformat = (input: string, context: Record<string, unknown>) => string
 
 interface CreateStrformatOpts {
   stringify?: (value: unknown, key: string) => string | undefined
@@ -54,7 +54,8 @@ interface CreateStrformatOpts {
   }
 }
 
-export function createStrformat(opts: CreateStrformatOpts = {}): StrformatFn {
+
+export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
   const {
     stringify = coerceToString,
   } = opts
