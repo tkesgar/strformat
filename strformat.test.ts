@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test"
-import { strformat } from "./strformat"
+import { createStrformat, strformat } from "./strformat"
 
 describe('strformat', () => {
   it('should render value from context', () => {
@@ -148,6 +148,33 @@ describe('strformat', () => {
 
   it('can refer to context in default value', () => {
     const input = '[hash!@config.length#!@config.default].[ext]'
+    const context = {
+      hash: (length: string) => 'b4f234798dbd8435c44412ff121c9726'.slice(0, Number(length)),
+      ext: 'txt',
+      config: {
+        default: 'default',
+        length: 8
+      }
+    }
+
+    expect(strformat(input, context)).toBe('default.txt')
+  })
+})
+
+describe('createStrformat', () => {
+  it('can customize strformat', () => {
+    const strformat = createStrformat({
+      delimiters: {
+        start: '<',
+        end: '>',
+        call: '?',
+        params: ';',
+        ctx: '$',
+        path: '/'
+      }
+    })
+
+    const input = '<hash?$config/length#?$config/default>.<ext>'
     const context = {
       hash: (length: string) => 'b4f234798dbd8435c44412ff121c9726'.slice(0, Number(length)),
       ext: 'txt',
