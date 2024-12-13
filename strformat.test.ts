@@ -1,27 +1,45 @@
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect, mock } from "bun:test"
 import { coerceToString, traverseKeys } from "./strformat"
 import { createStrformat, strformat, strformatfs } from "."
 
 describe('coerceToString', () => {
   describe('string values', () => {
     it.each([
+      ['', ''],
       [0, '0'],
       [123, '123'],
       [true, 'true'],
       [false, 'false'],
       ['hallo', 'hallo'],
-      [Symbol('wah'), 'wah'],
-      ['', ''],
       [1234567890123456789n, '1234567890123456789'],
+      // Symbol may have string representation in `s.description`. Otherwise,
+      // `s.description` is undefined. The string representation might not be
+      // filename-safe, but we will leave it to the user.
+      [Symbol('wah'), 'wah'],
+      // Convert date to UNIX timestamp (in seconds) instead of miliseconds.
+      [new Date(123456789000), '123456789'],
+      [{}, '[object Object]'],
+      [NaN, 'NaN'],
+      [Infinity, 'Infinity'],
     ])('should coerce `%p` to %s', (value, stringValue) => {
+      expect(coerceToString(value)).toBe(stringValue)
+    })
+
+    it.each([
+      [{
+        foo: 'bar',
+        toString(): string {
+          return '-baz-'
+        }
+      }, '-baz-'],
+      [Math, '[object Math]']
+    ])('should coerce %o to %s', (value, stringValue) => {
       expect(coerceToString(value)).toBe(stringValue)
     })
   })
 
   describe('undefined values', () => {
     it.each([
-      [{}],
-      [{foo: 'bar'}],
       [() => 123],
       [Symbol()],
       [null],
@@ -222,17 +240,18 @@ describe('strformat', () => {
   })
 
   it('can refer to context in default value', () => {
-    const input = '[hash:@config.length|:@config.default].[ext]'
+    const input = '[hash:@config.length|:@config.default|slice:0,3].[ext]'
     const context = {
       hash: (length: string) => 'b4f234798dbd8435c44412ff121c9726'.slice(0, Number(length)),
       ext: 'txt',
       config: {
         default: 'default',
         length: 8
-      }
+      },
+      slice: (str: string, a: string, b: string) => str.slice(Number(a), Number(b))
     }
 
-    expect(strformat(input, context)).toBe('default.txt')
+    expect(strformat(input, context)).toBe('def.txt')
   })
 })
 
@@ -254,7 +273,7 @@ describe('strformatfs', () => {
 })
 
 describe('createStrformat', () => {
-  it('can customize strformat', () => {
+  it('can customize strformat delimiters', () => {
     const strformat = createStrformat({
       delimiters: {
         start: '<',
@@ -279,5 +298,45 @@ describe('createStrformat', () => {
     }
 
     expect(strformat(input, context)).toBe('def.txt')
+  })
+
+  it('can customize strformat serializer', () => {
+    const strformat = createStrformat({
+      stringify(value) {
+        const str = JSON.stringify(value)
+        return str.startsWith("\"") ? str.slice(1, -1) : str
+      },
+    })
+
+    const input = '[name]@[date]'
+    const context = {
+      name: 'foo',
+      date: new Date(123456789000),
+    }
+
+    expect(strformat(input, context)).toBe('foo@1973-11-29T21:33:09.000Z')
+  })
+
+  it('serializer should receive value and key', () => {
+    const stringify = mock(coerceToString)
+    const strformat = createStrformat({ stringify })
+
+    const input = '[hash:@config.length|:@config.default|slice:0,3].[ext]'
+    const context = {
+      hash: (length: string) => 'b4f234798dbd8435c44412ff121c9726'.slice(0, Number(length)),
+      ext: 'txt',
+      config: {
+        default: 'default',
+        length: 8
+      },
+      slice: (str: string, a: string, b: string) => str.slice(Number(a), Number(b))
+    }
+
+    expect(strformat(input, context)).toBe('def.txt')
+    expect(stringify).toBeCalledWith(8, 'config.length') // TODO Should not happen here, currently we stringify all eval context
+    expect(stringify).toBeCalledWith('b4f23479', 'hash')
+    expect(stringify).toBeCalledWith('default', 'config.default') // TODO Should not happen here, currently we stringify all eval context
+    expect(stringify).toBeCalledWith('slice', 'slice')
+    expect(stringify).toBeCalledWith('txt', 'ext')
   })
 })

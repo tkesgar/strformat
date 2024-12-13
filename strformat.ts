@@ -1,14 +1,28 @@
+/**
+ * Returns a preferred string representation of the given `value` if possible,
+ * or `undefined` if the value does not have possible string representation.
+ *
+ * Because strformat may be used for generating file names, we tried to return
+ * filename-safe string whenever possible, with some exceptions. See the tests
+ * for more details on specific cases.
+ *
+ * @param value
+ * @returns
+ */
 export function coerceToString(value: unknown): string | undefined {
   switch (typeof value) {
     case 'string':
       return value
-    case 'object':
     case 'function':
     case 'undefined':
       return undefined
     case 'symbol':
       return value.description
     default:
+      if (value instanceof Date) {
+        return Math.floor(value.getTime() / 1000).toString();
+      }
+
       return value?.toString()
   }
 }
@@ -28,6 +42,7 @@ export function traverseKeys(keys: string[], obj: any): unknown {
 export type StrformatFn = (input: string, context: Record<string, unknown>) => string
 
 interface CreateStrformatOpts {
+  stringify?: (value: unknown, key: string) => string | undefined
   delimiters?: {
     start?: string
     end?: string
@@ -40,6 +55,10 @@ interface CreateStrformatOpts {
 }
 
 export function createStrformat(opts: CreateStrformatOpts = {}): StrformatFn {
+  const {
+    stringify = coerceToString,
+  } = opts
+
   const DELIM_START = opts.delimiters?.start ?? '['
   const DELIM_END = opts.delimiters?.end ?? ']'
   const DELIM_CALL = opts.delimiters?.call ?? ':'
@@ -60,7 +79,8 @@ export function createStrformat(opts: CreateStrformatOpts = {}): StrformatFn {
         throw new Error(`${fnKey} is not a function`)
       }
 
-      const value = coerceToString(fn(...fnArgs.split(DELIM_PARAMS).map(v => v.startsWith(DELIM_CTX) ? evalValueFromContext(v.slice(1), context) : v)))
+      const fnResult = fn(...fnArgs.split(DELIM_PARAMS).map(v => v.startsWith(DELIM_CTX) ? evalValueFromContext(v.slice(1), context) : v))
+      const value = stringify(fnResult, fnKey)
       if (typeof value === 'undefined') {
         throw new Error(`Cannot use returned value from context function`)
       } else {
@@ -72,7 +92,7 @@ export function createStrformat(opts: CreateStrformatOpts = {}): StrformatFn {
         ctxValue = ctxValue()
       }
 
-      return coerceToString(ctxValue)
+      return stringify(ctxValue, key)
     }
   }
 
@@ -112,7 +132,8 @@ export function createStrformat(opts: CreateStrformatOpts = {}): StrformatFn {
               throw new Error(`${fnKey} is not a function`)
             }
 
-            currentValue = coerceToString(fn(currentValue, ...fnArgs.split(DELIM_PARAMS)))
+            const fnResult = fn(currentValue, ...fnArgs.split(DELIM_PARAMS))
+            currentValue = stringify(fnResult, fnKey)
           } else {
             // Ignore key if current value is undefined (we will have special values later)
             if (typeof currentValue === 'undefined') {
@@ -124,7 +145,7 @@ export function createStrformat(opts: CreateStrformatOpts = {}): StrformatFn {
               throw new Error(`${key} is not a function`)
             }
 
-            currentValue = coerceToString(fn(currentValue))
+            currentValue = stringify(fn(currentValue), key)
           }
         }
 
