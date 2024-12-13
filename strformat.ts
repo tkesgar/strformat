@@ -45,10 +45,6 @@ export function createStrformat(opts: CreateStrformatOpts = {}): StrformatFn {
   const RE_KEY_PATTERN = new RegExp(`^(.*?)\\${DELIM_CALL}(.*)$`)
 
   function traversePath(path: string, obj: any): unknown {
-    if (path.startsWith(DELIM_PATH)) {
-      return traverseKeys(path.slice(1).split(DELIM_PATH), obj)
-    }
-
     return traverseKeys(path.split(DELIM_PATH), obj)
   }
 
