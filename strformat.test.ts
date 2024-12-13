@@ -1,5 +1,80 @@
 import { describe, it, expect } from "bun:test"
-import { createStrformat, strformat, strformatfs } from "./strformat"
+import { coerceToString, traverseKeys } from "./strformat"
+import { createStrformat, strformat, strformatfs } from "."
+
+describe('coerceToString', () => {
+  describe('string values', () => {
+    it.each([
+      [0, '0'],
+      [123, '123'],
+      [true, 'true'],
+      [false, 'false'],
+      ['hallo', 'hallo'],
+      [Symbol('wah'), 'wah'],
+      ['', ''],
+      [1234567890123456789n, '1234567890123456789'],
+    ])('should coerce `%p` to %s', (value, stringValue) => {
+      expect(coerceToString(value)).toBe(stringValue)
+    })
+  })
+
+  describe('undefined values', () => {
+    it.each([
+      [{}],
+      [{foo: 'bar'}],
+      [() => 123],
+      [Symbol()],
+      [null],
+      [undefined],
+    ])('should coerce `%j` to undefined', (value) => {
+      expect(coerceToString(value)).toBeUndefined()
+    })
+  })
+})
+
+describe('traverseKeys', () => {
+  const obj = {
+    foo: 'bar',
+    baz: {
+      uwu: 123,
+    },
+    arr: [
+      {
+        name: 'valueA',
+        value: 100
+      },
+      {
+        name: 'valueB',
+        value: 200
+      },
+      {
+        name: 'valueC',
+        value: 300
+      },
+    ]
+  }
+
+  it.each([
+    ['foo', 'bar'],
+    ['baz', { uwu: 123 }],
+    ['baz.uwu', 123],
+    ['arr.0', {name: 'valueA', value: 100}],
+    ['arr.1.name', 'valueB'],
+    ['arr.2.value', 300],
+  ])('should return `%s` from the object given the path', (path, value) => {
+    expect(traverseKeys(path.split('.'), obj)).toEqual(value)
+  })
+
+  it.each([
+    ['bass'],
+    ['a.b.c.d.e'],
+    ['1.2.3.4.5'],
+    ['.'],
+    [''],
+  ])('should return undefined for non-existing path %s', (path) => {
+    expect(traverseKeys(path.split('.'), obj)).toBeUndefined()
+  })
+})
 
 describe('strformat', () => {
   it('should render value from context', () => {

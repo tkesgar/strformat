@@ -1,15 +1,19 @@
-// Coerce value as string, returns undefined if we can't use the value
-function coerceToString(value: unknown): string | undefined {
-  if (typeof value === 'string') {
-    return value
-  }
-
-  if (value?.toString) {
-    return value.toString()
+export function coerceToString(value: unknown): string | undefined {
+  switch (typeof value) {
+    case 'string':
+      return value
+    case 'object':
+    case 'function':
+    case 'undefined':
+      return undefined
+    case 'symbol':
+      return value.description
+    default:
+      return value?.toString()
   }
 }
 
-function traverseKeys(keys: string[], obj: any): unknown {
+export function traverseKeys(keys: string[], obj: any): unknown {
   if (keys.length === 0) {
     return undefined
   }
@@ -46,16 +50,12 @@ export function createStrformat(opts: CreateStrformatOpts = {}): StrformatFn {
 
   const RE_KEY_PATTERN = new RegExp(`^(.*?)\\${DELIM_CALL}(.*)$`)
 
-  function traversePath(path: string, obj: any): unknown {
-    return traverseKeys(path.split(DELIM_PATH), obj)
-  }
-
   function evalValueFromContext(key: string, context: Record<string, unknown>) {
     const matchKeyPattern = RE_KEY_PATTERN.exec(key)
     if (matchKeyPattern) {
       const [fnKey, fnArgs] = matchKeyPattern.slice(1)
 
-      const fn = traversePath(fnKey, context)
+      const fn = traverseKeys(fnKey.split(DELIM_PATH), context)
       if (typeof fn !== 'function') {
         throw new Error(`${fnKey} is not a function`)
       }
@@ -67,7 +67,7 @@ export function createStrformat(opts: CreateStrformatOpts = {}): StrformatFn {
         return value
       }
     } else {
-      let ctxValue = traversePath(key, context)
+      let ctxValue = traverseKeys(key.split(DELIM_PATH), context)
       if (typeof ctxValue === 'function') {
         ctxValue = ctxValue()
       }
@@ -137,12 +137,3 @@ export function createStrformat(opts: CreateStrformatOpts = {}): StrformatFn {
     })
   }
 }
-
-export const strformat = createStrformat()
-
-export const strformatfs = createStrformat({
-  delimiters: {
-    call: '!',
-    pipe: '#'
-  }
-})
