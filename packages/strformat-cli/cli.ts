@@ -1,6 +1,6 @@
 import { program } from "commander"
 import pkg from "./package.json"
-import { strformat, strformatfs } from ".";
+import { strformat, strformatfs } from "@tkesgar/strformat";
 import fs from "node:fs"
 import os from "node:os"
 import crypto from "node:crypto"

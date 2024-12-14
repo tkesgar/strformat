@@ -1,0 +1,15 @@
+{
+  "name": "@tkesgar/strformat-cli",
+  "description": "CLI for strformat",
+  "version": "0.0.0",
+  "module": "strformat.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "^1.1.14"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "dayjs": "^1.11.13",
+    "@tkesgar/strformat": "workspace:^"
+  }
+}
