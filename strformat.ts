@@ -119,7 +119,7 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
             const [fnKey, fnArgs] = matchKeyPattern.slice(1)
 
             if (fnKey === '') {
-              currentValue = fnArgs.startsWith(DELIM_CTX) ? evalValueFromContext(fnArgs.slice(1), context) : fnArgs
+              currentValue = typeof currentValue === 'undefined' ? (fnArgs.startsWith(DELIM_CTX) ? evalValueFromContext(fnArgs.slice(1), context) : fnArgs) : currentValue
               continue
             }
 
@@ -133,7 +133,7 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
               throw new Error(`${fnKey} is not a function`)
             }
 
-            const fnResult = fn(currentValue, ...fnArgs.split(DELIM_PARAMS))
+            const fnResult = fn(currentValue, ...fnArgs.split(DELIM_PARAMS).map(v => v.startsWith(DELIM_CTX) ? evalValueFromContext(v.slice(1), context) : v))
             currentValue = stringify(fnResult, fnKey)
           } else {
             // Ignore key if current value is undefined (we will have special values later)

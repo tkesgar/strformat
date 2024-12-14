@@ -176,6 +176,8 @@ describe('strformat', () => {
     }
 
     expect(strformat(input, context)).toBe('default.txt')
+
+    expect(strformat(input, { ...context, filename: 'foo' })).toBe('foo.txt')
   })
 
   it('default value walks through the pipe', () => {
@@ -240,9 +242,8 @@ describe('strformat', () => {
   })
 
   it('can refer to context in default value', () => {
-    const input = '[hash:@config.length|:@config.default|slice:0,3].[ext]'
+    const input = '[hash|:@config.default|slice:0,3].[ext]'
     const context = {
-      hash: (length: string) => 'b4f234798dbd8435c44412ff121c9726'.slice(0, Number(length)),
       ext: 'txt',
       config: {
         default: 'default',
@@ -257,9 +258,8 @@ describe('strformat', () => {
 
 describe('strformatfs', () => {
   it('should use filesystem-safe delimiters', () => {
-    const input = '[hash!@config.length#!@config.default#slice!0,3].[ext]'
+    const input = '[hash#!@config.default#slice!0,3].[ext]'
     const context = {
-      hash: (length: string) => 'b4f234798dbd8435c44412ff121c9726'.slice(0, Number(length)),
       ext: 'txt',
       config: {
         default: 'default',
@@ -286,9 +286,8 @@ describe('createStrformat', () => {
       }
     })
 
-    const input = '<hash?$config/length#?$config/default#slice?0;3>.<ext>'
+    const input = '<hash#?$config/default#slice?0;3>.<ext>'
     const context = {
-      hash: (length: string) => 'b4f234798dbd8435c44412ff121c9726'.slice(0, Number(length)),
       ext: 'txt',
       config: {
         default: 'default',
@@ -321,9 +320,8 @@ describe('createStrformat', () => {
     const stringify = mock(coerceToString)
     const strformat = createStrformat({ stringify })
 
-    const input = '[hash:@config.length|:@config.default|slice:0,3].[ext]'
+    const input = '[hash|:@config.default|slice:0,3].[ext]'
     const context = {
-      hash: (length: string) => 'b4f234798dbd8435c44412ff121c9726'.slice(0, Number(length)),
       ext: 'txt',
       config: {
         default: 'default',
@@ -333,10 +331,9 @@ describe('createStrformat', () => {
     }
 
     expect(strformat(input, context)).toBe('def.txt')
-    expect(stringify).toBeCalledWith(8, 'config.length') // TODO Should not happen here, currently we stringify all eval context
-    expect(stringify).toBeCalledWith('b4f23479', 'hash')
-    expect(stringify).toBeCalledWith('default', 'config.default') // TODO Should not happen here, currently we stringify all eval context
-    expect(stringify).toBeCalledWith('slice', 'slice')
+    expect(stringify).toBeCalledWith(undefined, 'hash')
+    expect(stringify).toBeCalledWith('default', 'config.default')
+    expect(stringify).toBeCalledWith('def', 'slice')
     expect(stringify).toBeCalledWith('txt', 'ext')
   })
 })
