@@ -12,7 +12,6 @@ program
   .description(pkg.description)
   .version(pkg.version)
   .argument('[input-template]', 'Template to be rendered')
-  .option('-o, --output [FILE]', 'write output to file instead of stdout')
   .option('-f, --file [FILE]', 'provides additional file context')
   .option('-s, --safe', 'use filesystem-safe variant')
   .option('--print-context', 'prints the context to stderr')
@@ -21,7 +20,6 @@ program.parse();
 
 const args = program.args
 const opts: {
-  output?: string
   file?: string
   context?: string
   printContext?: boolean
@@ -127,9 +125,4 @@ if (opts.file) {
 }
 
 const result = opts.safe ? strformatfs(input, context) : strformat(input, context)
-
-if (!opts.output) {
-  console.log(result)
-} else {
-  fs.writeFileSync(opts.output, result, { encoding: 'utf-8' })
-}
+console.log(result)
