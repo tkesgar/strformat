@@ -39,7 +39,9 @@ export function traverseKeys(keys: string[], obj: any): unknown {
   return traverseKeys(keys.slice(1), obj?.[keys[0]] ?? undefined)
 }
 
-export type Strformat = (input: string, context: Record<string, unknown>) => string
+type StrformatContext = Record<string, unknown>
+
+export type Strformat = (input: string, context: StrformatContext) => string
 
 interface CreateStrformatOpts {
   stringify?: (value: unknown, key: string) => string | undefined
@@ -70,7 +72,7 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
 
   const RE_KEY_PATTERN = new RegExp(`^(.*?)\\${DELIM_CALL}(.*)$`)
 
-  function resolveContextReference(value: string, context: Record<string, unknown>) {
+  function resolveContextReference(value: string, context: StrformatContext) {
     if (value.startsWith(DELIM_CTX)) {
       const key = value.slice(1)
       return getValueFromContext(key, context)
@@ -79,7 +81,7 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
     return value
   }
 
-  function getValueFromContext(key: string, context: Record<string, unknown>) {
+  function getValueFromContext(key: string, context: StrformatContext) {
     // Check if the key contains call delimiter, e.g. `foo:a,b,c`.
     // If it contains call delimiter, we need to call the function; otherwise,
     // we can directly check the value in context.
@@ -114,7 +116,7 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
     }
   }
 
-  return (input: string, context: Record<string, unknown>): string => {
+  return (input: string, context: StrformatContext): string => {
     // Find all [foo] and [bar] substrings.
     // TODO Look for async alternatives that we can use.
     const regexInput = new RegExp(`\\${DELIM_START}.*?\\${DELIM_END}`, 'g')
