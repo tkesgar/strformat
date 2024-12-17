@@ -6,8 +6,6 @@ It is inspired by Webpack template strings, with additional features such as pip
 
 ## Usage
 
-### Use in code
-
 Install from NPM:
 
 ```
@@ -25,23 +23,9 @@ console.log(strformat('script.[hash].[ext]', {
 }))
 ```
 
-### CLI
+## Specification
 
-Install globally:
-
-```
-npm install -g @tkesgar/strformat
-```
-
-Use in CLI:
-
-```
-my-js-compiler input.myfile -o $(strformat "script.[day:YYYY-MM-DD].js")
-```
-
-## Template specification
-
-Simple rendering:
+Simple template:
 
 ```js
 const context = {
