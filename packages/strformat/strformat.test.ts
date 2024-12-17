@@ -92,6 +92,10 @@ describe('traverseKeys', () => {
   ])('should return undefined for non-existing path %s', (path) => {
     expect(traverseKeys(path.split('.'), obj)).toBeUndefined()
   })
+
+  it('should return undefined if the object is undefined', () => {
+    expect(traverseKeys('foo.bar.baz'.split('.'), undefined)).toBeUndefined()
+  })
 })
 
 describe('strformat', () => {
