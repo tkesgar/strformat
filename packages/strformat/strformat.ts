@@ -70,24 +70,41 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
 
   const RE_KEY_PATTERN = new RegExp(`^(.*?)\\${DELIM_CALL}(.*)$`)
 
-  function evalValueFromContext(key: string, context: Record<string, unknown>) {
+  function resolveContextReference(value: string, context: Record<string, unknown>) {
+    if (value.startsWith(DELIM_CTX)) {
+      const key = value.slice(1)
+      return getValueFromContext(key, context)
+    }
+
+    return value
+  }
+
+  function getValueFromContext(key: string, context: Record<string, unknown>) {
+    // Check if the key contains call delimiter, e.g. `foo:a,b,c`.
+    // If it contains call delimiter, we need to call the function; otherwise,
+    // we can directly check the value in context.
     const matchKeyPattern = RE_KEY_PATTERN.exec(key)
     if (matchKeyPattern) {
+      // fnKey = foo
+      // fnArgs = a,b,c
       const [fnKey, fnArgs] = matchKeyPattern.slice(1)
 
+      // Get the context value. We expect the value to be a function.
       const fn = traverseKeys(fnKey.split(DELIM_PATH), context)
       if (typeof fn !== 'function') {
         throw new Error(`${fnKey} is not a function`)
       }
 
-      const fnResult = fn(...fnArgs.split(DELIM_PARAMS).map(v => v.startsWith(DELIM_CTX) ? evalValueFromContext(v.slice(1), context) : v))
-      const value = stringify(fnResult, fnKey)
-      if (typeof value === 'undefined') {
-        throw new Error(`Cannot use returned value from context function`)
-      } else {
-        return value
-      }
+      // Function may have reference to context, so we need to get the value.
+      // TODO This introduces potential to infinite loop; we need to to track
+      // the values.
+      const fnParsedArgs = fnArgs.split(DELIM_PARAMS).map(arg => resolveContextReference(arg, context))
+
+      const fnResult: unknown = fn(...fnParsedArgs)
+      return stringify(fnResult, fnKey)
     } else {
+      // Get the context value. If the value is a function, call it without
+      // parameters.
       let ctxValue = traverseKeys(key.split(DELIM_PATH), context)
       if (typeof ctxValue === 'function') {
         ctxValue = ctxValue()
@@ -98,64 +115,94 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
   }
 
   return (input: string, context: Record<string, unknown>): string => {
+    // Find all [foo] and [bar] substrings.
+    // TODO Look for async alternatives that we can use.
     const regexInput = new RegExp(`\\${DELIM_START}.*?\\${DELIM_END}`, 'g')
     return input.replaceAll(regexInput, (pattern) => {
+      // pattern: [foo]
+      // key: foo
       const key = pattern.slice(1, -1)
 
+      // If the key does not have |, simply get the value.
+      // Otherwise we need to evaluate each pipe segments one by one.
       if (!key.includes(DELIM_PIPE)) {
-        const value = evalValueFromContext(key, context)
+        const value = getValueFromContext(key, context)
         if (typeof value === 'undefined') {
           throw new Error(`Cannot use value from context`)
         } else {
           return value
         }
-      } else {
-        const [firstKey, ...restKeys] = key.split(DELIM_PIPE)
-
-        let currentValue: string | undefined = evalValueFromContext(firstKey, context)
-        for (const key of restKeys) {
-          const matchKeyPattern = RE_KEY_PATTERN.exec(key)
-          if (matchKeyPattern) {
-            const [fnKey, fnArgs] = matchKeyPattern.slice(1)
-
-            if (fnKey === '') {
-              currentValue = typeof currentValue === 'undefined' ? (fnArgs.startsWith(DELIM_CTX) ? evalValueFromContext(fnArgs.slice(1), context) : fnArgs) : currentValue
-              continue
-            }
-
-            // Ignore key if current value is undefined (we will have special values later)
-            if (typeof currentValue === 'undefined') {
-              continue
-            }
-
-            const fn = context[fnKey]
-            if (typeof fn !== 'function') {
-              throw new Error(`${fnKey} is not a function`)
-            }
-
-            const fnResult = fn(currentValue, ...fnArgs.split(DELIM_PARAMS).map(v => v.startsWith(DELIM_CTX) ? evalValueFromContext(v.slice(1), context) : v))
-            currentValue = stringify(fnResult, fnKey)
-          } else {
-            // Ignore key if current value is undefined (we will have special values later)
-            if (typeof currentValue === 'undefined') {
-              continue
-            }
-
-            const fn = context[key]
-            if (typeof fn !== 'function') {
-              throw new Error(`${key} is not a function`)
-            }
-
-            currentValue = stringify(fn(currentValue), key)
-          }
-        }
-
-        if (typeof currentValue === 'undefined') {
-          throw new Error('Pipe sequence evaluates to undefined')
-        }
-
-        return currentValue
       }
+
+      // Use the first key to get the initial value for the pipe sequence.
+      // Note that here we allow the initial value to be undefined to implement
+      // default value mechanism ([|:default]).
+      const [firstKey, ...restKeys] = key.split(DELIM_PIPE)
+      let currentValue: string | undefined = getValueFromContext(firstKey, context)
+
+      // Loop through each remaining pipe segments and call the function from
+      // context to currentValue.
+      //
+      // Note that this is similar with getValueFromContext, except we want the
+      // context value to be function (so we can call it using currentValue).
+      for (const key of restKeys) {
+        // Check if the key contains call delimiter, e.g. `foo:a,b,c`.
+        // If it contains call delimiter, there will be additional parameters to
+        // the function call.
+        const matchKeyPattern = RE_KEY_PATTERN.exec(key)
+        if (matchKeyPattern) {
+          const [fnKey, fnArgs] = matchKeyPattern.slice(1)
+
+          // If fnKey is empty string (|:default|), we use the function argument
+          // to replace the value, but only if currentValue is undefined.
+          if (fnKey === '') {
+            currentValue ??= resolveContextReference(fnArgs, context)
+            continue
+          }
+
+          // Fall through to the next pipe if currentValue is undefined
+          // (we cannot call the function on anything).
+          if (typeof currentValue === 'undefined') {
+            continue
+          }
+
+          // Get the context value. We expect the value to be a function.
+          const fn = context[fnKey]
+          if (typeof fn !== 'function') {
+            throw new Error(`${fnKey} is not a function`)
+          }
+
+          // Function may have reference to context, so we need to get the value.
+          // TODO This introduces potential to infinite loop; we need to to track
+          // the values.
+          const fnParsedArgs = fnArgs.split(DELIM_PARAMS).map(arg => resolveContextReference(arg, context))
+
+          const fnResult = fn(currentValue, ...fnParsedArgs)
+          currentValue = stringify(fnResult, fnKey)
+        } else {
+          // Fall through to the next pipe if currentValue is undefined
+          // (we cannot call the function on anything).
+          if (typeof currentValue === 'undefined') {
+            continue
+          }
+
+          // Get the context value. We expect the value to be a function.
+          const fn = context[key]
+          if (typeof fn !== 'function') {
+            throw new Error(`${key} is not a function`)
+          }
+
+          const fnResult = fn(currentValue)
+          currentValue = stringify(fnResult, key)
+        }
+      }
+
+      // We cannot use undefined as value.
+      if (typeof currentValue === 'undefined') {
+        throw new Error('Pipe sequence evaluates to undefined')
+      }
+
+      return currentValue
     })
   }
 }

@@ -1,5 +1,7 @@
 import { createStrformat } from "./strformat"
 
+export { createStrformat, type Strformat } from "./strformat"
+
 export const strformat = createStrformat()
 
 export const strformatfs = createStrformat({
@@ -8,5 +10,3 @@ export const strformatfs = createStrformat({
     pipe: '#'
   }
 })
-
-export { createStrformat, type Strformat } from "./strformat"
