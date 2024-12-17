@@ -5,9 +5,6 @@
  * Because strformat may be used for generating file names, we tried to return
  * filename-safe string whenever possible, with some exceptions. See the tests
  * for more details on specific cases.
- *
- * @param value
- * @returns
  */
 export function coerceToString(value: unknown): string | undefined {
   switch (typeof value) {
@@ -27,6 +24,9 @@ export function coerceToString(value: unknown): string | undefined {
   }
 }
 
+/**
+ * Traverse through an object using an array of keys.
+ */
 export function traverseKeys(keys: string[], obj: any): unknown {
   if (keys.length === 0) {
     return undefined
