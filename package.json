@@ -2,7 +2,8 @@
   "private": true,
   "scripts": {
     "lint": "eslint . && prettier --check .",
-    "format": "eslint . --fix && prettier --write ."
+    "format": "eslint . --fix && prettier --write .",
+    "postinstall": "husky"
   },
   "workspaces": [
     "packages/*"
@@ -14,6 +15,8 @@
     "ejs": "^3.1.10",
     "eslint": "^9.17.0",
     "eta": "^3.5.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.11",
     "prettier": "3.4.2",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.1"
