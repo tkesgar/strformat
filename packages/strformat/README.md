@@ -1,10 +1,12 @@
 # @tkesgar/strformat
 
-strformat is a minimal string templating engine, intended for short strings such as file names.
+strformat is a minimal string templating engine, intended for short strings such
+as file names.
 
 See [strformat-cli] for usage in CLI.
 
-It is inspired by Webpack template strings, with additional features such as pipes and default values.
+It is inspired by Webpack template strings, with additional features such as
+pipes and default values.
 
 ## Usage
 
@@ -43,11 +45,11 @@ Context value can be a function:
 
 ```js
 const context = {
-  random: () => crypto.randomBytes(16).toString('hex'),
+  random: () => crypto.randomBytes(16).toString("hex"),
   ext: "txt",
-}
+};
 
-strformat("[random].[ext]", context)
+strformat("[random].[ext]", context);
 // 8c8ccdbfa2ebb57609eec9e82a9e6810.txt
 ```
 
@@ -56,19 +58,19 @@ Context value function can receive parameters:
 ```js
 const context = {
   random(_len, _enc) {
-    const len = Number(_len) || 16
-    const enc = ['hex', 'base64', 'base64url'].includes(_enc) ? _enc : 'hex'
+    const len = Number(_len) || 16;
+    const enc = ["hex", "base64", "base64url"].includes(_enc) ? _enc : "hex";
 
-    return crypto.randomBytes(Number(len) || 16).toString(enc)
+    return crypto.randomBytes(Number(len) || 16).toString(enc);
   },
-  ext: "txt"
-}
+  ext: "txt",
+};
 
-strformat("[random].[ext]", context)
+strformat("[random].[ext]", context);
 // a9ca8061ed985c9f82ab635939b710b4.txt
-strformat("[random:8].[ext]", context)
+strformat("[random:8].[ext]", context);
 // 81b9d5eecaf5d918.txt
-strformat("[random:8,base64url].[ext]", context)
+strformat("[random:8,base64url].[ext]", context);
 // UKuDqfNinQY.txt
 ```
 
@@ -93,14 +95,14 @@ previous value is `undefined`. This allows constructs such as default values
 
 ```js
 const context = {
-  upper: str => str.toUpperCase(),
-}
+  upper: (str) => str.toUpperCase(),
+};
 
-strformat(".env.[env|:development|upper]", context)
+strformat(".env.[env|:development|upper]", context);
 // .env.DEVELOPMENT
 
-context.env = 'production'
-strformat(".env.[env|:development|upper]", context)
+context.env = "production";
+strformat(".env.[env|:development|upper]", context);
 // .env.PRODUCTION
 ```
 
@@ -109,17 +111,20 @@ Use `.` to traverse through value in the context:
 ```js
 const context = {
   pkg: {
-    name: 'mypkg',
-    version: '1.2.3',
+    name: "mypkg",
+    version: "1.2.3",
   },
   node: {
     os,
     process,
   },
-  prepend: (str, prefix) => str && prefix + str
-}
+  prepend: (str, prefix) => str && prefix + str,
+};
 
-strformat("[pkg.name]-v[pkg.version]-[node.process.platform]-[node.os.arch][compiler|:|prepend:-].tar.gz", context)
+strformat(
+  "[pkg.name]-v[pkg.version]-[node.process.platform]-[node.os.arch][compiler|:|prepend:-].tar.gz",
+  context,
+);
 // mypkg-v1.2.3-linux-x64.tar.gz
 ```
 
@@ -127,17 +132,17 @@ Use `@` to refer to the context value in parameters:
 
 ```js
 const context = {
-  hash: crypto.randomBytes(16).toString('hex'),
+  hash: crypto.randomBytes(16).toString("hex"),
   slice: (str, start, end) => {
-    return str.slice(Number(start), Number(end))
+    return str.slice(Number(start), Number(end));
   },
   cfg: {
     length: 8,
-    defaultExt: 'txt'
-  }
-}
+    defaultExt: "txt",
+  },
+};
 
-strformat("[hash|slice:0,@cfg.length].[ext|:@cfg.defaultExt]", context)
+strformat("[hash|slice:0,@cfg.length].[ext|:@cfg.defaultExt]", context);
 // 3fabaf5c.txt
 ```
 
@@ -146,14 +151,14 @@ strformat("[hash|slice:0,@cfg.length].[ext|:@cfg.defaultExt]", context)
 `strformat` is faster than most other templating engines without precompilation
 (generating plain JavaScript function from the template).
 
-Consider using precompiled templates if the template is known in advance, or
-you want to render the same template a large number of times.
+Consider using precompiled templates if the template is known in advance, or you
+want to render the same template a large number of times.
 
 - clk: ~5.39 GHz
 - cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
 - runtime: bun 1.1.34 (x64-linux)
 
-| benchmark        |              avg |         min |         p75 |         p99 |         max |
+| benchmark        | avg              | min         | p75         | p99         | max         |
 | ---------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
 | strformat        | `774.80 ns/iter` | `724.85 ns` | `777.68 ns` | `  1.05 µs` | `  1.15 µs` |
 | dot              | `  1.75 µs/iter` | `  1.58 µs` | `  1.85 µs` | `  2.24 µs` | `  2.25 µs` |

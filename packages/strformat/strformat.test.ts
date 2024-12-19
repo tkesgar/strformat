@@ -1,343 +1,342 @@
-import { describe, it, expect, mock } from "bun:test"
-import { coerceToString, traverseKeys } from "./strformat"
-import { createStrformat, strformat, strformatfs } from "."
+import { describe, it, expect, mock } from "bun:test";
+import { coerceToString, traverseKeys } from "./strformat";
+import { createStrformat, strformat, strformatfs } from ".";
 
-describe('coerceToString', () => {
-  describe('string values', () => {
+describe("coerceToString", () => {
+  describe("string values", () => {
     it.each([
-      ['', ''],
-      [0, '0'],
-      [123, '123'],
-      [true, 'true'],
-      [false, 'false'],
-      ['hallo', 'hallo'],
-      [1234567890123456789n, '1234567890123456789'],
+      ["", ""],
+      [0, "0"],
+      [123, "123"],
+      [true, "true"],
+      [false, "false"],
+      ["hallo", "hallo"],
+      [1234567890123456789n, "1234567890123456789"],
       // Symbol may have string representation in `s.description`. Otherwise,
       // `s.description` is undefined. The string representation might not be
       // filename-safe, but we will leave it to the user.
-      [Symbol('wah'), 'wah'],
+      [Symbol("wah"), "wah"],
       // Convert date to UNIX timestamp (in seconds) instead of miliseconds.
-      [new Date(123456789000), '123456789'],
-      [{}, '[object Object]'],
-      [NaN, 'NaN'],
-      [Infinity, 'Infinity'],
-    ])('should coerce `%p` to %s', (value, stringValue) => {
-      expect(coerceToString(value)).toBe(stringValue)
-    })
+      [new Date(123456789000), "123456789"],
+      [{}, "[object Object]"],
+      [NaN, "NaN"],
+      [Infinity, "Infinity"],
+    ])("should coerce `%p` to %s", (value, stringValue) => {
+      expect(coerceToString(value)).toBe(stringValue);
+    });
 
     it.each([
-      [{
-        foo: 'bar',
-        toString(): string {
-          return '-baz-'
-        }
-      }, '-baz-'],
-      [Math, '[object Math]']
-    ])('should coerce %o to %s', (value, stringValue) => {
-      expect(coerceToString(value)).toBe(stringValue)
-    })
-  })
+      [
+        {
+          foo: "bar",
+          toString(): string {
+            return "-baz-";
+          },
+        },
+        "-baz-",
+      ],
+      [Math, "[object Math]"],
+    ])("should coerce %o to %s", (value, stringValue) => {
+      expect(coerceToString(value)).toBe(stringValue);
+    });
+  });
 
-  describe('undefined values', () => {
-    it.each([
-      [() => 123],
-      [Symbol()],
-      [null],
-      [undefined],
-    ])('should coerce `%j` to undefined', (value) => {
-      expect(coerceToString(value)).toBeUndefined()
-    })
-  })
-})
+  describe("undefined values", () => {
+    it.each([[() => 123], [Symbol()], [null], [undefined]])(
+      "should coerce `%j` to undefined",
+      (value) => {
+        expect(coerceToString(value)).toBeUndefined();
+      },
+    );
+  });
+});
 
-describe('traverseKeys', () => {
+describe("traverseKeys", () => {
   const obj = {
-    foo: 'bar',
+    foo: "bar",
     baz: {
       uwu: 123,
     },
     arr: [
       {
-        name: 'valueA',
-        value: 100
+        name: "valueA",
+        value: 100,
       },
       {
-        name: 'valueB',
-        value: 200
+        name: "valueB",
+        value: 200,
       },
       {
-        name: 'valueC',
-        value: 300
+        name: "valueC",
+        value: 300,
       },
-    ]
-  }
+    ],
+  };
 
   it.each([
-    ['foo', 'bar'],
-    ['baz', { uwu: 123 }],
-    ['baz.uwu', 123],
-    ['arr.0', {name: 'valueA', value: 100}],
-    ['arr.1.name', 'valueB'],
-    ['arr.2.value', 300],
-  ])('should return `%s` from the object given the path', (path, value) => {
-    expect(traverseKeys(path.split('.'), obj)).toEqual(value)
-  })
+    ["foo", "bar"],
+    ["baz", { uwu: 123 }],
+    ["baz.uwu", 123],
+    ["arr.0", { name: "valueA", value: 100 }],
+    ["arr.1.name", "valueB"],
+    ["arr.2.value", 300],
+  ])("should return `%s` from the object given the path", (path, value) => {
+    expect(traverseKeys(path.split("."), obj)).toEqual(value);
+  });
 
-  it.each([
-    ['bass'],
-    ['a.b.c.d.e'],
-    ['1.2.3.4.5'],
-    ['.'],
-    [''],
-  ])('should return undefined for non-existing path %s', (path) => {
-    expect(traverseKeys(path.split('.'), obj)).toBeUndefined()
-  })
+  it.each([["bass"], ["a.b.c.d.e"], ["1.2.3.4.5"], ["."], [""]])(
+    "should return undefined for non-existing path %s",
+    (path) => {
+      expect(traverseKeys(path.split("."), obj)).toBeUndefined();
+    },
+  );
 
-  it('should return undefined if the object is undefined', () => {
-    expect(traverseKeys('foo.bar.baz'.split('.'), undefined)).toBeUndefined()
-  })
-})
+  it("should return undefined if the object is undefined", () => {
+    expect(traverseKeys("foo.bar.baz".split("."), undefined)).toBeUndefined();
+  });
+});
 
-describe('strformat', () => {
-  it('should render value from context', () => {
-    const input = '[filename].[ext]'
+describe("strformat", () => {
+  it("should render value from context", () => {
+    const input = "[filename].[ext]";
     const context = {
-      filename: 'foo',
-      ext: 'txt'
-    }
+      filename: "foo",
+      ext: "txt",
+    };
 
-    expect(strformat(input, context)).toBe('foo.txt')
-  })
+    expect(strformat(input, context)).toBe("foo.txt");
+  });
 
-  it('should call function and use the returned value if value is function', () => {
-    const input = '[filename].[ext]'
+  it("should call function and use the returned value if value is function", () => {
+    const input = "[filename].[ext]";
     const context = {
-      filename: () => 'bar',
-      ext: 'txt'
-    }
+      filename: () => "bar",
+      ext: "txt",
+    };
 
-    expect(strformat(input, context)).toBe('bar.txt')
-  })
+    expect(strformat(input, context)).toBe("bar.txt");
+  });
 
-  it('should call function with 1 parameter', () => {
-    const input = '[filename:123].[ext]'
+  it("should call function with 1 parameter", () => {
+    const input = "[filename:123].[ext]";
     const context = {
       filename: (x: string) => `foo_${x}`,
-      ext: 'txt'
-    }
+      ext: "txt",
+    };
 
-    expect(strformat(input, context)).toBe('foo_123.txt')
-  })
+    expect(strformat(input, context)).toBe("foo_123.txt");
+  });
 
-  it('should call function with 3 parameters', () => {
-    const input = '[filename:123,456,789].[ext]'
+  it("should call function with 3 parameters", () => {
+    const input = "[filename:123,456,789].[ext]";
     const context = {
-      filename: (...args: string[]) => `foo_${args.join('')}`,
-      ext: 'txt'
-    }
+      filename: (...args: string[]) => `foo_${args.join("")}`,
+      ext: "txt",
+    };
 
-    expect(strformat(input, context)).toBe('foo_123456789.txt')
-  })
+    expect(strformat(input, context)).toBe("foo_123456789.txt");
+  });
 
-  it('should pipe the value to transform function', () => {
-    const input = '[filename|upper].[ext]'
+  it("should pipe the value to transform function", () => {
+    const input = "[filename|upper].[ext]";
     const context = {
-      filename: 'foo',
-      ext: 'txt',
-      upper: (str: string) => str.toUpperCase()
-    }
+      filename: "foo",
+      ext: "txt",
+      upper: (str: string) => str.toUpperCase(),
+    };
 
-    expect(strformat(input, context)).toBe('FOO.txt')
-  })
+    expect(strformat(input, context)).toBe("FOO.txt");
+  });
 
-  it('should pass arguments to transform function', () => {
-    const input = '[filename|slice:1,4].[ext]'
+  it("should pass arguments to transform function", () => {
+    const input = "[filename|slice:1,4].[ext]";
     const context = {
-      filename: 'foobar',
-      ext: 'txt',
-      slice: (str: string, a: string, b: string) => str.slice(Number(a), Number(b))
-    }
+      filename: "foobar",
+      ext: "txt",
+      slice: (str: string, a: string, b: string) =>
+        str.slice(Number(a), Number(b)),
+    };
 
-    expect(strformat(input, context)).toBe('oob.txt')
-  })
+    expect(strformat(input, context)).toBe("oob.txt");
+  });
 
-  it('should pass multiple pipes', () => {
-    const input = '[filename|slice:1,4|upper].[ext]'
+  it("should pass multiple pipes", () => {
+    const input = "[filename|slice:1,4|upper].[ext]";
     const context = {
-      filename: 'foobar',
-      ext: 'txt',
-      slice: (str: string, a: string, b: string) => str.slice(Number(a), Number(b)),
-      upper: (str: string) => str.toUpperCase()
-    }
+      filename: "foobar",
+      ext: "txt",
+      slice: (str: string, a: string, b: string) =>
+        str.slice(Number(a), Number(b)),
+      upper: (str: string) => str.toUpperCase(),
+    };
 
-    expect(strformat(input, context)).toBe('OOB.txt')
-  })
+    expect(strformat(input, context)).toBe("OOB.txt");
+  });
 
-  it('can provide default value', () => {
-    const input = '[filename|:default].[ext]'
+  it("can provide default value", () => {
+    const input = "[filename|:default].[ext]";
     const context = {
-      ext: 'txt'
-    }
+      ext: "txt",
+    };
 
-    expect(strformat(input, context)).toBe('default.txt')
+    expect(strformat(input, context)).toBe("default.txt");
 
-    expect(strformat(input, { ...context, filename: 'foo' })).toBe('foo.txt')
-  })
+    expect(strformat(input, { ...context, filename: "foo" })).toBe("foo.txt");
+  });
 
-  it('default value walks through the pipe', () => {
-    const input = '[filename|:default|upper].[ext]'
+  it("default value walks through the pipe", () => {
+    const input = "[filename|:default|upper].[ext]";
     const context = {
-      ext: 'txt',
-      upper: (str: string) => str.toUpperCase()
-    }
+      ext: "txt",
+      upper: (str: string) => str.toUpperCase(),
+    };
 
-    expect(strformat(input, context)).toBe('DEFAULT.txt')
-  })
+    expect(strformat(input, context)).toBe("DEFAULT.txt");
+  });
 
-  it('can use path in value', () => {
-    const input = '[file.name].[ext]'
+  it("can use path in value", () => {
+    const input = "[file.name].[ext]";
     const context = {
       file: {
-        name: 'foo'
+        name: "foo",
       },
-      ext: 'txt'
-    }
+      ext: "txt",
+    };
 
-    expect(strformat(input, context)).toBe('foo.txt')
-  })
+    expect(strformat(input, context)).toBe("foo.txt");
+  });
 
-  it('can use array index in value', () => {
-    const input = '[files.1.name].[ext]'
+  it("can use array index in value", () => {
+    const input = "[files.1.name].[ext]";
     const context = {
-      files: [
-        { name: 'foo' },
-        { name: 'bar' },
-      ],
-      ext: 'txt'
-    }
+      files: [{ name: "foo" }, { name: "bar" }],
+      ext: "txt",
+    };
 
-    expect(strformat(input, context)).toBe('bar.txt')
-  })
+    expect(strformat(input, context)).toBe("bar.txt");
+  });
 
-  it('can traverse deep and return default value', () => {
-    const input = '[files.1.type|:default].[ext]'
+  it("can traverse deep and return default value", () => {
+    const input = "[files.1.type|:default].[ext]";
     const context = {
-      files: [
-        { name: 'foo' },
-        { name: 'bar' },
-      ],
-      ext: 'txt'
-    }
+      files: [{ name: "foo" }, { name: "bar" }],
+      ext: "txt",
+    };
 
-    expect(strformat(input, context)).toBe('default.txt')
-  })
+    expect(strformat(input, context)).toBe("default.txt");
+  });
 
-  it('can refer to context in parameters', () => {
-    const input = '[hash:@config.length].[ext]'
+  it("can refer to context in parameters", () => {
+    const input = "[hash:@config.length].[ext]";
     const context = {
-      hash: (length: string) => 'b4f234798dbd8435c44412ff121c9726'.slice(0, Number(length)),
-      ext: 'txt',
+      hash: (length: string) =>
+        "b4f234798dbd8435c44412ff121c9726".slice(0, Number(length)),
+      ext: "txt",
       config: {
-        length: 8
-      }
-    }
-
-    expect(strformat(input, context)).toBe('b4f23479.txt')
-  })
-
-  it('can refer to context in default value', () => {
-    const input = '[hash|:@config.default|slice:0,3].[ext]'
-    const context = {
-      ext: 'txt',
-      config: {
-        default: 'default',
-        length: 8
+        length: 8,
       },
-      slice: (str: string, a: string, b: string) => str.slice(Number(a), Number(b))
-    }
+    };
 
-    expect(strformat(input, context)).toBe('def.txt')
-  })
-})
+    expect(strformat(input, context)).toBe("b4f23479.txt");
+  });
 
-describe('strformatfs', () => {
-  it('should use filesystem-safe delimiters', () => {
-    const input = '[hash#!@config.default#slice!0,3].[ext]'
+  it("can refer to context in default value", () => {
+    const input = "[hash|:@config.default|slice:0,3].[ext]";
     const context = {
-      ext: 'txt',
+      ext: "txt",
       config: {
-        default: 'default',
-        length: 8
+        default: "default",
+        length: 8,
       },
-      slice: (str: string, a: string, b: string) => str.slice(Number(a), Number(b))
-    }
+      slice: (str: string, a: string, b: string) =>
+        str.slice(Number(a), Number(b)),
+    };
 
-    expect(strformatfs(input, context)).toBe('def.txt')
-  })
-})
+    expect(strformat(input, context)).toBe("def.txt");
+  });
+});
 
-describe('createStrformat', () => {
-  it('can customize strformat delimiters', () => {
+describe("strformatfs", () => {
+  it("should use filesystem-safe delimiters", () => {
+    const input = "[hash#!@config.default#slice!0,3].[ext]";
+    const context = {
+      ext: "txt",
+      config: {
+        default: "default",
+        length: 8,
+      },
+      slice: (str: string, a: string, b: string) =>
+        str.slice(Number(a), Number(b)),
+    };
+
+    expect(strformatfs(input, context)).toBe("def.txt");
+  });
+});
+
+describe("createStrformat", () => {
+  it("can customize strformat delimiters", () => {
     const strformat = createStrformat({
       delimiters: {
-        start: '<',
-        end: '>',
-        call: '?',
-        params: ';',
-        ctx: '$',
-        path: '/',
-        pipe: '#'
-      }
-    })
-
-    const input = '<hash#?$config/default#slice?0;3>.<ext>'
-    const context = {
-      ext: 'txt',
-      config: {
-        default: 'default',
-        length: 8
+        start: "<",
+        end: ">",
+        call: "?",
+        params: ";",
+        ctx: "$",
+        path: "/",
+        pipe: "#",
       },
-      slice: (str: string, a: string, b: string) => str.slice(Number(a), Number(b))
-    }
+    });
 
-    expect(strformat(input, context)).toBe('def.txt')
-  })
+    const input = "<hash#?$config/default#slice?0;3>.<ext>";
+    const context = {
+      ext: "txt",
+      config: {
+        default: "default",
+        length: 8,
+      },
+      slice: (str: string, a: string, b: string) =>
+        str.slice(Number(a), Number(b)),
+    };
 
-  it('can customize strformat serializer', () => {
+    expect(strformat(input, context)).toBe("def.txt");
+  });
+
+  it("can customize strformat serializer", () => {
     const strformat = createStrformat({
       stringify(value) {
-        const str = JSON.stringify(value)
-        return str.startsWith("\"") ? str.slice(1, -1) : str
+        const str = JSON.stringify(value);
+        return str.startsWith('"') ? str.slice(1, -1) : str;
       },
-    })
+    });
 
-    const input = '[name]@[date]'
+    const input = "[name]@[date]";
     const context = {
-      name: 'foo',
+      name: "foo",
       date: new Date(123456789000),
-    }
+    };
 
-    expect(strformat(input, context)).toBe('foo@1973-11-29T21:33:09.000Z')
-  })
+    expect(strformat(input, context)).toBe("foo@1973-11-29T21:33:09.000Z");
+  });
 
-  it('serializer should receive value and key', () => {
-    const stringify = mock(coerceToString)
-    const strformat = createStrformat({ stringify })
+  it("serializer should receive value and key", () => {
+    const stringify = mock(coerceToString);
+    const strformat = createStrformat({ stringify });
 
-    const input = '[hash|:@config.default|slice:0,3].[ext]'
+    const input = "[hash|:@config.default|slice:0,3].[ext]";
     const context = {
-      ext: 'txt',
+      ext: "txt",
       config: {
-        default: 'default',
-        length: 8
+        default: "default",
+        length: 8,
       },
-      slice: (str: string, a: string, b: string) => str.slice(Number(a), Number(b))
-    }
+      slice: (str: string, a: string, b: string) =>
+        str.slice(Number(a), Number(b)),
+    };
 
-    expect(strformat(input, context)).toBe('def.txt')
-    expect(stringify).toBeCalledWith(undefined, 'hash')
-    expect(stringify).toBeCalledWith('default', 'config.default')
-    expect(stringify).toBeCalledWith('def', 'slice')
-    expect(stringify).toBeCalledWith('txt', 'ext')
-  })
-})
+    expect(strformat(input, context)).toBe("def.txt");
+    expect(stringify).toBeCalledWith(undefined, "hash");
+    expect(stringify).toBeCalledWith("default", "config.default");
+    expect(stringify).toBeCalledWith("def", "slice");
+    expect(stringify).toBeCalledWith("txt", "ext");
+  });
+});
