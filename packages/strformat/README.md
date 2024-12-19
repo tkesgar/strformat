@@ -1,6 +1,8 @@
 # @tkesgar/strformat
 
-strformat is a minimal string templating engine, intended for short strings such as generating file names and very simple documents.
+strformat is a minimal string templating engine, intended for short strings such as file names.
+
+See [strformat-cli] for usage in CLI.
 
 It is inspired by Webpack template strings, with additional features such as pipes and default values.
 
@@ -138,3 +140,25 @@ const context = {
 strformat("[hash|slice:0,@cfg.length].[ext|:@cfg.defaultExt]", context)
 // 3fabaf5c.txt
 ```
+
+## Performance
+
+`strformat` is faster than most other templating engines without precompilation
+(generating plain JavaScript function from the template).
+
+Consider using precompiled templates if the template is known in advance, or
+you want to render the same template a large number of times.
+
+- clk: ~5.39 GHz
+- cpu: 13th Gen Intel(R) Core(TM) i9-13900HX
+- runtime: bun 1.1.34 (x64-linux)
+
+| benchmark        |              avg |         min |         p75 |         p99 |         max |
+| ---------------- | ---------------- | ----------- | ----------- | ----------- | ----------- |
+| strformat        | `774.80 ns/iter` | `724.85 ns` | `777.68 ns` | `  1.05 µs` | `  1.15 µs` |
+| dot              | `  1.75 µs/iter` | `  1.58 µs` | `  1.85 µs` | `  2.24 µs` | `  2.25 µs` |
+| dot (precompile) | `188.91 ps/iter` | `181.15 ps` | `182.62 ps` | `189.94 ps` | `123.89 ns` |
+| eta              | `  4.61 µs/iter` | `  4.26 µs` | `  4.73 µs` | `  5.03 µs` | `  5.09 µs` |
+| eta (precompile) | ` 48.79 ns/iter` | ` 40.69 ns` | ` 44.02 ns` | `225.83 ns` | `429.49 ns` |
+| ejs              | `  8.55 µs/iter` | `  5.80 µs` | `  8.22 µs` | ` 28.65 µs` | `  1.79 ms` |
+| ejs (precompile) | `476.49 ns/iter` | `442.47 ns` | `475.12 ns` | `733.37 ns` | `827.39 ns` |

@@ -1,37 +1,71 @@
 import { run, bench } from 'mitata';
 import { strformat } from '.';
 import crypto from 'node:crypto'
+import dot from 'dot'
+import ejs from 'ejs'
+import { Eta } from "eta"
 
-const ctx = {
-  filename: 'MyNamespace~my-app-script',
-  hash: crypto.randomBytes(16).toString('hex'),
-  ext: 'js',
-  slice: (_string: any, _start?: any, _end?: any) => {
-    const start = Number(_start) || undefined
-    const end = Number(_end) || undefined
-    return _string.slice(start, end)
-  },
-  config: {
-    default: 'default'
+const eta = new Eta()
+
+function createBench(fn: () => (ctx: Record<string, unknown>) => void) {
+  const _fn = fn()
+
+  return function* () {
+    const ctx = {
+      filename: 'MyNamespace~my-app-script',
+      hash: crypto.randomBytes(16).toString('hex'),
+      ext: 'js',
+    }
+
+    yield () => {
+      _fn(ctx)
+    }
   }
 }
 
-let largeString = crypto.randomBytes(1000).toString('base64')
-largeString = largeString.slice(0, 100) + '[filename]' + largeString.slice(100)
-largeString = largeString.slice(0, 200) + '[hash]' + largeString.slice(200)
-largeString = largeString.slice(0, 300) + '[ext]' + largeString.slice(300)
-largeString = largeString.slice(0, 400) + '[filehash|:@config.default|slice:0,3]' + largeString.slice(400)
+bench('strformat', createBench(() => {
+  return (ctx) => {
+    strformat('[filename].[hash].[ext]', ctx)
+  }
+}))
 
-bench('simple', () => {
-  strformat('[filename].[hash].[ext]', ctx)
-})
+bench('dot', createBench(() => {
+  return (ctx) => {
+    dot.template('{{=it.filename}}.{{=it.hash}}.{{=it.ext}}')(ctx)
+  }
+}))
 
-bench('complex', () => {
-  strformat('[unknown|:@config.default|slice:0,3].[ext]', ctx)
-})
+bench('dot (precompile)', createBench(() => {
+  const render = dot.template('{{=it.filename}}.{{=it.hash}}.{{=it.ext}}')
+  return (ctx) => {
+    render(ctx)
+  }
+}))
 
-bench('large', () => {
-  strformat(largeString, ctx)
-})
+bench('eta', createBench(() => {
+  return (ctx) => {
+    eta.renderString('<%=it.filename%>.<%=it.hash%>.<%=it.ext%>', ctx)
+  }
+}))
 
-await run()
+bench('eta (precompile)', createBench(() => {
+  const render = eta.compile('<%=it.filename%>.<%=it.hash%>.<%=it.ext%>').bind(eta)
+  return (ctx) => {
+    render(ctx)
+  }
+}))
+
+bench('ejs', createBench(() => {
+  return (ctx) => {
+    ejs.render('<%=filename%>.<%=hash%>.<%=ext%>', ctx)
+  }
+}))
+
+bench('ejs (precompile)', createBench(() => {
+  const render = ejs.compile('<%=filename%>.<%=hash%>.<%=ext%>')
+  return (ctx) => {
+    render(ctx)
+  }
+}))
+
+await run({ format: 'markdown' })
