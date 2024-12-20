@@ -1,5 +1,9 @@
 import { describe, it, expect, mock } from "bun:test";
-import { coerceToString, traverseKeys } from "./strformat";
+import {
+  coerceToString,
+  ERROR_CONTEXT_FUNCTION_ERROR,
+  traverseKeys,
+} from "./strformat";
 import {
   createStrformat,
   StrformatError,
@@ -446,6 +450,100 @@ describe("errors", () => {
     }
 
     expect.assertions(3);
+  });
+
+  it("should throw strformat error if the context function throws error (function call)", () => {
+    const input = "[foo].[ext]";
+    const context = {
+      foo: () => {
+        throw new Error("Oh noes!");
+      },
+      ext: "txt",
+    };
+
+    try {
+      strformat(input, context);
+    } catch (error) {
+      if (error instanceof StrformatError) {
+        expect(error.message).toBe(`Error on context function value 'foo'`);
+        expect(error.code).toBe(ERROR_CONTEXT_FUNCTION_ERROR);
+        expect(error.pattern).toBe("[foo]");
+        expect(error.cause).toBeInstanceOf(Error);
+      }
+    }
+
+    expect.assertions(4);
+  });
+
+  it("should throw strformat error if the context function throws error (function call + args)", () => {
+    const input = "[foo:123].[ext]";
+    const context = {
+      foo: () => {
+        throw new Error("Oh noes!");
+      },
+      ext: "txt",
+    };
+
+    try {
+      strformat(input, context);
+    } catch (error) {
+      if (error instanceof StrformatError) {
+        expect(error.message).toBe(`Error on context function value 'foo'`);
+        expect(error.code).toBe(ERROR_CONTEXT_FUNCTION_ERROR);
+        expect(error.pattern).toBe("[foo:123]");
+        expect(error.cause).toBeInstanceOf(Error);
+      }
+    }
+
+    expect.assertions(4);
+  });
+
+  it("should throw strformat error if the context function throws error (pipe)", () => {
+    const input = "[foo|bar].[ext]";
+    const context = {
+      foo: 123,
+      bar: () => {
+        throw new Error("Oh noes!");
+      },
+      ext: "txt",
+    };
+
+    try {
+      strformat(input, context);
+    } catch (error) {
+      if (error instanceof StrformatError) {
+        expect(error.message).toBe(`Error on context function 'bar'`);
+        expect(error.code).toBe(ERROR_CONTEXT_FUNCTION_ERROR);
+        expect(error.pattern).toBe("[foo|bar]");
+        expect(error.cause).toBeInstanceOf(Error);
+      }
+    }
+
+    expect.assertions(4);
+  });
+
+  it("should throw strformat error if the context function throws error (pipe + args)", () => {
+    const input = "[foo|bar:123].[ext]";
+    const context = {
+      foo: 123,
+      bar: () => {
+        throw new Error("Oh noes!");
+      },
+      ext: "txt",
+    };
+
+    try {
+      strformat(input, context);
+    } catch (error) {
+      if (error instanceof StrformatError) {
+        expect(error.message).toBe(`Error on context function 'bar'`);
+        expect(error.code).toBe(ERROR_CONTEXT_FUNCTION_ERROR);
+        expect(error.pattern).toBe("[foo|bar:123]");
+        expect(error.cause).toBeInstanceOf(Error);
+      }
+    }
+
+    expect.assertions(4);
   });
 });
 

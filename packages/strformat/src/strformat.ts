@@ -63,17 +63,25 @@ export const ERROR_CONTEXT_NOT_FUNCTION = 102;
 
 export const ERROR_PIPE_UNDEFINED = 103;
 
+export const ERROR_CONTEXT_FUNCTION_ERROR = 104;
+
 export type StrformatErrorCode =
   | typeof ERROR_CONTEXT_NOT_FOUND
   | typeof ERROR_CONTEXT_NOT_FUNCTION
-  | typeof ERROR_PIPE_UNDEFINED;
+  | typeof ERROR_PIPE_UNDEFINED
+  | typeof ERROR_CONTEXT_FUNCTION_ERROR;
 
 export class StrformatError extends Error {
   readonly code: StrformatErrorCode;
   readonly pattern: string;
 
-  constructor(message: string, code: StrformatErrorCode, pattern: string) {
-    super(message);
+  constructor(
+    message: string,
+    code: StrformatErrorCode,
+    pattern: string,
+    cause?: unknown,
+  ) {
+    super(message, { cause });
     this.code = code;
     this.pattern = pattern;
   }
@@ -134,14 +142,32 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
         .split(DELIM_PARAMS)
         .map((arg) => resolveContextReference(arg, context, originalPattern));
 
-      const fnResult: unknown = fn(...fnParsedArgs);
-      return stringify(fnResult, fnKey);
+      try {
+        const fnResult: unknown = fn(...fnParsedArgs);
+        return stringify(fnResult, fnKey);
+      } catch (error) {
+        throw new StrformatError(
+          `Error on context function value '${fnKey}'`,
+          ERROR_CONTEXT_FUNCTION_ERROR,
+          originalPattern,
+          error,
+        );
+      }
     } else {
       // Get the context value. If the value is a function, call it without
       // parameters.
       let ctxValue = traverseKeys(key.split(DELIM_PATH), context);
       if (typeof ctxValue === "function") {
-        ctxValue = ctxValue();
+        try {
+          ctxValue = ctxValue();
+        } catch (error) {
+          throw new StrformatError(
+            `Error on context function value '${key}'`,
+            ERROR_CONTEXT_FUNCTION_ERROR,
+            originalPattern,
+            error,
+          );
+        }
       }
 
       return stringify(ctxValue, key);
@@ -223,7 +249,18 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
             .split(DELIM_PARAMS)
             .map((arg) => resolveContextReference(arg, context, pattern));
 
-          const fnResult = fn(currentValue, ...fnParsedArgs);
+          let fnResult;
+          try {
+            fnResult = fn(currentValue, ...fnParsedArgs);
+          } catch (error) {
+            throw new StrformatError(
+              `Error on context function '${fnKey}'`,
+              ERROR_CONTEXT_FUNCTION_ERROR,
+              pattern,
+              error,
+            );
+          }
+
           currentValue = stringify(fnResult, fnKey);
         } else {
           // Fall through to the next pipe if currentValue is undefined
@@ -242,7 +279,17 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
             );
           }
 
-          const fnResult = fn(currentValue);
+          let fnResult;
+          try {
+            fnResult = fn(currentValue);
+          } catch (error) {
+            throw new StrformatError(
+              `Error on context function '${key}'`,
+              ERROR_CONTEXT_FUNCTION_ERROR,
+              pattern,
+              error,
+            );
+          }
           currentValue = stringify(fnResult, key);
         }
       }
