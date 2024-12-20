@@ -426,7 +426,7 @@ describe("errors", () => {
     expect.assertions(3);
   });
 
-  it("should throw error not a function (inside pipe, without parameter)", () => {
+  it("should throw error not a function (pipe undefined)", () => {
     const context = {
       foo: "bar",
       baz: () => undefined,
@@ -448,15 +448,13 @@ describe("errors", () => {
 });
 
 describe("edge cases", () => {
-  it("should throw error for [|:]", () => {
-    const input = "[|:].[ext]";
+  it("should allow empty string for default value", () => {
+    const input = "[foo|:].[ext]";
     const context = {
       ext: "txt",
     };
 
-    expect(() => strformatfs(input, context)).toThrowError(
-      `Context does not contain '|:'`,
-    );
+    expect(strformat(input, context)).toBe(".txt");
   });
 
   it("should throw error for []", () => {
@@ -465,7 +463,7 @@ describe("edge cases", () => {
       ext: "txt",
     };
 
-    expect(() => strformatfs(input, context)).toThrowError(
+    expect(() => strformat(input, context)).toThrowError(
       `Context does not contain ''`,
     );
   });
@@ -476,8 +474,8 @@ describe("edge cases", () => {
       ext: "txt",
     };
 
-    expect(() => strformatfs(input, context)).toThrowError(
-      `Context does not contain ':'`,
+    expect(() => strformat(input, context)).toThrowError(
+      `Context value '' is not a function`,
     );
   });
 
@@ -487,19 +485,30 @@ describe("edge cases", () => {
       ext: "txt",
     };
 
-    expect(() => strformatfs(input, context)).toThrowError(
+    expect(() => strformat(input, context)).toThrowError(
       `Context does not contain '@'`,
     );
   });
 
-  it("should throw error for [@]", () => {
-    const input = "[:@foo].[ext]";
+  it("should not cause infinite loop", () => {
+    function hash() {
+      return "@hash";
+    }
+
+    const input = "[|:@hash]";
     const context = {
-      ext: "txt",
+      hash,
     };
 
-    expect(() => strformatfs(input, context)).toThrowError(
-      `Context does not contain ':@foo'`,
-    );
+    expect(strformat(input, context)).toBe("@hash");
+  });
+
+  it("should not cause infinite loop", () => {
+    const input = "[|:@self]";
+    const context = {
+      self: "@self",
+    };
+
+    expect(strformat(input, context)).toBe("@self");
   });
 });

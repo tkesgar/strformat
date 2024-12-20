@@ -129,9 +129,7 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
         );
       }
 
-      // Function may have reference to context, so we need to get the value.
-      // TODO This introduces potential to infinite loop; we need to to track
-      // the values.
+      // Function params may have reference to context, so we need to get the value.
       const fnParsedArgs = fnArgs
         .split(DELIM_PARAMS)
         .map((arg) => resolveContextReference(arg, context, originalPattern));
@@ -220,9 +218,7 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
             );
           }
 
-          // Function may have reference to context, so we need to get the value.
-          // TODO This introduces potential to infinite loop; we need to to track
-          // the values.
+          // Function params may have reference to context, so we need to get the value.
           const fnParsedArgs = fnArgs
             .split(DELIM_PARAMS)
             .map((arg) => resolveContextReference(arg, context, pattern));
