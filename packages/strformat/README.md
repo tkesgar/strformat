@@ -162,6 +162,23 @@ strformat("[hash|slice:0,@cfg.length].[ext|:@cfg.defaultExt]", context);
 // 3fabaf5c.txt
 ```
 
+## Error handling
+
+strformat throws an instance of `StrformatError` when it cannot render a
+template. The error contains the following fields:
+
+- `message`: reason why the render fails
+- `code`: one of strformat error codes
+- `pattern`: a specific pattern that causes the render to fail
+
+Possible error codes (see `StrformatErrorCode`):
+
+| Error code | Description                                                                                 |
+| ---------- | ------------------------------------------------------------------------------------------- |
+| 101        | The context value for a given key is `undefined`                                            |
+| 102        | strformat expects the context value for a given key is a function, but it is not a function |
+| 103        | A pipe sequence evaluates to `undefined`                                                    |
+
 ## Performance
 
 `strformat` is faster than most other templating engines without precompilation

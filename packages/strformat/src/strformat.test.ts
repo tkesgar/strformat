@@ -1,6 +1,14 @@
 import { describe, it, expect, mock } from "bun:test";
 import { coerceToString, traverseKeys } from "./strformat";
-import { createStrformat, strformat, strformatfs } from ".";
+import {
+  createStrformat,
+  StrformatError,
+  strformat,
+  strformatfs,
+  ERROR_CONTEXT_NOT_FUNCTION,
+  ERROR_CONTEXT_NOT_FOUND,
+  ERROR_PIPE_UNDEFINED,
+} from ".";
 
 describe("coerceToString", () => {
   describe("string values", () => {
@@ -338,5 +346,160 @@ describe("createStrformat", () => {
     expect(stringify).toBeCalledWith("default", "config.default");
     expect(stringify).toBeCalledWith("def", "slice");
     expect(stringify).toBeCalledWith("txt", "ext");
+  });
+});
+
+describe("errors", () => {
+  it("should throw error not a function", () => {
+    const context = {
+      foo: "bar",
+    };
+    const input = "[foo:123].txt";
+
+    try {
+      strformat(input, context);
+    } catch (error) {
+      if (error instanceof StrformatError) {
+        expect(error.message).toBe(`Context value 'foo' is not a function`);
+        expect(error.code).toBe(ERROR_CONTEXT_NOT_FUNCTION);
+        expect(error.pattern).toBe("[foo:123]");
+      }
+    }
+
+    expect.assertions(3);
+  });
+
+  it("should throw error value does not exists", () => {
+    const context = {};
+    const input = "[foo].txt";
+
+    try {
+      strformat(input, context);
+    } catch (error) {
+      if (error instanceof StrformatError) {
+        expect(error.message).toBe(`Context does not contain 'foo'`);
+        expect(error.code).toBe(ERROR_CONTEXT_NOT_FOUND);
+        expect(error.pattern).toBe("[foo]");
+      }
+    }
+
+    expect.assertions(3);
+  });
+
+  it("should throw error not a function (inside pipe, with parameter)", () => {
+    const context = {
+      foo: "bar",
+      baz: 123,
+    };
+    const input = "[foo|baz:123].txt";
+
+    try {
+      strformat(input, context);
+    } catch (error) {
+      if (error instanceof StrformatError) {
+        expect(error.message).toBe(`Context value 'baz' is not a function`);
+        expect(error.code).toBe(ERROR_CONTEXT_NOT_FUNCTION);
+        expect(error.pattern).toBe("[foo|baz:123]");
+      }
+    }
+
+    expect.assertions(3);
+  });
+
+  it("should throw error not a function (inside pipe, without parameter)", () => {
+    const context = {
+      foo: "bar",
+      baz: 123,
+    };
+    const input = "[foo|baz].txt";
+
+    try {
+      strformat(input, context);
+    } catch (error) {
+      if (error instanceof StrformatError) {
+        expect(error.message).toBe(`Context value 'baz' is not a function`);
+        expect(error.code).toBe(ERROR_CONTEXT_NOT_FUNCTION);
+        expect(error.pattern).toBe("[foo|baz]");
+      }
+    }
+
+    expect.assertions(3);
+  });
+
+  it("should throw error not a function (inside pipe, without parameter)", () => {
+    const context = {
+      foo: "bar",
+      baz: () => undefined,
+    };
+    const input = "[foo|baz].txt";
+
+    try {
+      strformat(input, context);
+    } catch (error) {
+      if (error instanceof StrformatError) {
+        expect(error.message).toBe(`Pipe sequence evaluates to undefined`);
+        expect(error.code).toBe(ERROR_PIPE_UNDEFINED);
+        expect(error.pattern).toBe("[foo|baz]");
+      }
+    }
+
+    expect.assertions(3);
+  });
+});
+
+describe("edge cases", () => {
+  it("should throw error for [|:]", () => {
+    const input = "[|:].[ext]";
+    const context = {
+      ext: "txt",
+    };
+
+    expect(() => strformatfs(input, context)).toThrowError(
+      `Context does not contain '|:'`,
+    );
+  });
+
+  it("should throw error for []", () => {
+    const input = "[].[ext]";
+    const context = {
+      ext: "txt",
+    };
+
+    expect(() => strformatfs(input, context)).toThrowError(
+      `Context does not contain ''`,
+    );
+  });
+
+  it("should throw error for [:]", () => {
+    const input = "[:].[ext]";
+    const context = {
+      ext: "txt",
+    };
+
+    expect(() => strformatfs(input, context)).toThrowError(
+      `Context does not contain ':'`,
+    );
+  });
+
+  it("should throw error for [@]", () => {
+    const input = "[@].[ext]";
+    const context = {
+      ext: "txt",
+    };
+
+    expect(() => strformatfs(input, context)).toThrowError(
+      `Context does not contain '@'`,
+    );
+  });
+
+  it("should throw error for [@]", () => {
+    const input = "[:@foo].[ext]";
+    const context = {
+      ext: "txt",
+    };
+
+    expect(() => strformatfs(input, context)).toThrowError(
+      `Context does not contain ':@foo'`,
+    );
   });
 });

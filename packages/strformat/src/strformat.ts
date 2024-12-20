@@ -57,6 +57,28 @@ interface CreateStrformatOpts {
   };
 }
 
+export const ERROR_CONTEXT_NOT_FOUND = 101;
+
+export const ERROR_CONTEXT_NOT_FUNCTION = 102;
+
+export const ERROR_PIPE_UNDEFINED = 103;
+
+export type StrformatErrorCode =
+  | typeof ERROR_CONTEXT_NOT_FOUND
+  | typeof ERROR_CONTEXT_NOT_FUNCTION
+  | typeof ERROR_PIPE_UNDEFINED;
+
+export class StrformatError extends Error {
+  readonly code: StrformatErrorCode;
+  readonly pattern: string;
+
+  constructor(message: string, code: StrformatErrorCode, pattern: string) {
+    super(message);
+    this.code = code;
+    this.pattern = pattern;
+  }
+}
+
 export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
   const { stringify = coerceToString } = opts;
 
@@ -70,16 +92,24 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
 
   const RE_KEY_PATTERN = new RegExp(`^(.*?)\\${DELIM_CALL}(.*)$`);
 
-  function resolveContextReference(value: string, context: StrformatContext) {
+  function resolveContextReference(
+    value: string,
+    context: StrformatContext,
+    originalPattern: string,
+  ) {
     if (value.startsWith(DELIM_CTX)) {
       const key = value.slice(1);
-      return getValueFromContext(key, context);
+      return getValueFromContext(key, context, originalPattern);
     }
 
     return value;
   }
 
-  function getValueFromContext(key: string, context: StrformatContext) {
+  function getValueFromContext(
+    key: string,
+    context: StrformatContext,
+    originalPattern: string,
+  ) {
     // Check if the key contains call delimiter, e.g. `foo:a,b,c`.
     // If it contains call delimiter, we need to call the function; otherwise,
     // we can directly check the value in context.
@@ -92,7 +122,11 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
       // Get the context value. We expect the value to be a function.
       const fn = traverseKeys(fnKey.split(DELIM_PATH), context);
       if (typeof fn !== "function") {
-        throw new Error(`${fnKey} is not a function`);
+        throw new StrformatError(
+          `Context value '${fnKey}' is not a function`,
+          ERROR_CONTEXT_NOT_FUNCTION,
+          originalPattern,
+        );
       }
 
       // Function may have reference to context, so we need to get the value.
@@ -100,7 +134,7 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
       // the values.
       const fnParsedArgs = fnArgs
         .split(DELIM_PARAMS)
-        .map((arg) => resolveContextReference(arg, context));
+        .map((arg) => resolveContextReference(arg, context, originalPattern));
 
       const fnResult: unknown = fn(...fnParsedArgs);
       return stringify(fnResult, fnKey);
@@ -128,9 +162,13 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
       // If the key does not have |, simply get the value.
       // Otherwise we need to evaluate each pipe segments one by one.
       if (!key.includes(DELIM_PIPE)) {
-        const value = getValueFromContext(key, context);
+        const value = getValueFromContext(key, context, pattern);
         if (typeof value === "undefined") {
-          throw new Error(`Cannot use value from context`);
+          throw new StrformatError(
+            `Context does not contain '${key}'`,
+            ERROR_CONTEXT_NOT_FOUND,
+            pattern,
+          );
         } else {
           return value;
         }
@@ -143,6 +181,7 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
       let currentValue: string | undefined = getValueFromContext(
         firstKey,
         context,
+        pattern,
       );
 
       // Loop through each remaining pipe segments and call the function from
@@ -161,7 +200,7 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
           // If fnKey is empty string (|:default|), we use the function argument
           // to replace the value, but only if currentValue is undefined.
           if (fnKey === "") {
-            currentValue ??= resolveContextReference(fnArgs, context);
+            currentValue ??= resolveContextReference(fnArgs, context, pattern);
             continue;
           }
 
@@ -174,7 +213,11 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
           // Get the context value. We expect the value to be a function.
           const fn = context[fnKey];
           if (typeof fn !== "function") {
-            throw new Error(`${fnKey} is not a function`);
+            throw new StrformatError(
+              `Context value '${fnKey}' is not a function`,
+              ERROR_CONTEXT_NOT_FUNCTION,
+              pattern,
+            );
           }
 
           // Function may have reference to context, so we need to get the value.
@@ -182,7 +225,7 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
           // the values.
           const fnParsedArgs = fnArgs
             .split(DELIM_PARAMS)
-            .map((arg) => resolveContextReference(arg, context));
+            .map((arg) => resolveContextReference(arg, context, pattern));
 
           const fnResult = fn(currentValue, ...fnParsedArgs);
           currentValue = stringify(fnResult, fnKey);
@@ -196,7 +239,11 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
           // Get the context value. We expect the value to be a function.
           const fn = context[key];
           if (typeof fn !== "function") {
-            throw new Error(`${key} is not a function`);
+            throw new StrformatError(
+              `Context value '${key}' is not a function`,
+              ERROR_CONTEXT_NOT_FUNCTION,
+              pattern,
+            );
           }
 
           const fnResult = fn(currentValue);
@@ -206,7 +253,11 @@ export function createStrformat(opts: CreateStrformatOpts = {}): Strformat {
 
       // We cannot use undefined as value.
       if (typeof currentValue === "undefined") {
-        throw new Error("Pipe sequence evaluates to undefined");
+        throw new StrformatError(
+          `Pipe sequence evaluates to undefined`,
+          ERROR_PIPE_UNDEFINED,
+          pattern,
+        );
       }
 
       return currentValue;
