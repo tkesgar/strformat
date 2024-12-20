@@ -26,6 +26,8 @@ describe("coerceToString", () => {
       [Symbol("wah"), "wah"],
       // Convert date to UNIX timestamp (in seconds) instead of miliseconds.
       [new Date(123456789000), "123456789"],
+      // Convert specific date correctly
+      [new Date("2024-12-20T08:09:10.123Z"), "1734682150"],
       [{}, "[object Object]"],
       [NaN, "NaN"],
       [Infinity, "Infinity"],
