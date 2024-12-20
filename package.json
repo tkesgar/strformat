@@ -3,6 +3,7 @@
   "scripts": {
     "lint": "eslint . && prettier --check .",
     "format": "eslint . --fix && prettier --write .",
+    "test": "bun --filter '*' test",
     "postinstall": "husky"
   },
   "workspaces": [
