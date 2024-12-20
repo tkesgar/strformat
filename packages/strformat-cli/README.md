@@ -22,8 +22,8 @@ Written output to mypkg-v1.2.3-linux-x64.tar.gz.
 Install globally from NPM:
 
 ```
-npm install -g @tkesgar/strformat
-bun add -g @tkesgar/format
+npm install -g @tkesgar/strformat-cli
+bun add -g @tkesgar/strformat-cli
 ```
 
 Run in terminal:
