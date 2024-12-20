@@ -272,6 +272,11 @@ const context = {
 
 Initial version
 
+### v1.0.1
+
+Add fix to wrong version of `@tkesgar/strformat` being referenced in
+`package.json`
+
 ## License
 
 [MIT License](LICENSE)
