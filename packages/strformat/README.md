@@ -1,12 +1,25 @@
 # @tkesgar/strformat
 
+> Simple and minimal templating engine
+
 strformat is a minimal string templating engine, intended for short strings such
-as file names.
+as file names. It is inspired by Webpack template strings, with additional
+features such as pipes and default values.
+
+Design goals:
+
+- Easily readable syntax
+- Avoid tokens commonly used in other templates/interpolations, e.g. Bash
+  (`$foo`, `${foo}`, `$(foo)`), GitLab CI, GitHub (`${{foo}}`)
+- Extensibility: allow applications to add their own context values
+- Security: do not directly allow evaluating user input
+
+```
+Template: [pkg.name]-v[pkg.version]-[node.process.platform]-[node.os.arch][compiler|:|prepend:-].tar.gz
+Output:   mypkg-v1.2.3-linux-x64.tar.gz
+```
 
 See [strformat-cli] for usage in CLI.
-
-It is inspired by Webpack template strings, with additional features such as
-pipes and default values.
 
 ## Usage
 
@@ -14,17 +27,20 @@ Install from NPM:
 
 ```
 npm install @tkesgar/strformat
+bun add @tkesgar/strformat
 ```
 
 Use in code:
 
-```
-import { strformat } from "@tkesgar/strformat"
+```js
+import { strformat } from "@tkesgar/strformat";
 
-console.log(strformat('script.[hash].[ext]', {
-  hash: 'abcd1234',
-  ext: 'txt'
-}))
+console.log(
+  strformat("script.[hash].[ext]", {
+    hash: "abcd1234",
+    ext: "txt",
+  }),
+);
 ```
 
 ## Specification
