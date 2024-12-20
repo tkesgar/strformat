@@ -1,6 +1,6 @@
 {
   "name": "@tkesgar/strformat",
-  "description": "Minimal string templating engine",
+  "description": "Simple and minimal templating engine",
   "version": "0.0.0",
   "type": "module",
   "exports": {
