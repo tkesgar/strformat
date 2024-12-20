@@ -13,6 +13,9 @@
   "scripts": {
     "prepack": "bun unbuild"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "commander": "^12.1.0",
     "dayjs": "^1.11.13",
