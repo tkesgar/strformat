@@ -263,3 +263,7 @@ const context = {
     })()),
 };
 ```
+
+## License
+
+[MIT License](LICENSE)
