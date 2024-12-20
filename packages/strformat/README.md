@@ -21,6 +21,8 @@ Output:   mypkg-v1.2.3-linux-x64.tar.gz
 
 See [strformat-cli] for usage in CLI.
 
+[strformat-cli]: https://www.npmjs.com/package/@tkesgar/strformat-cli
+
 ## Usage
 
 Install from NPM:
@@ -200,6 +202,12 @@ want to render the same template a large number of times.
 | eta (precompile) | ` 48.79 ns/iter` | ` 40.69 ns` | ` 44.02 ns` | `225.83 ns` | `429.49 ns` |
 | ejs              | `  8.55 µs/iter` | `  5.80 µs` | `  8.22 µs` | ` 28.65 µs` | `  1.79 ms` |
 | ejs (precompile) | `476.49 ns/iter` | `442.47 ns` | `475.12 ns` | `733.37 ns` | `827.39 ns` |
+
+## Changelogs
+
+### v1.0.0
+
+Initial version
 
 ## License
 

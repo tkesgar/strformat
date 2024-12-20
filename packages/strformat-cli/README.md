@@ -15,6 +15,8 @@ Building archive... done.
 Written output to mypkg-v1.2.3-linux-x64.tar.gz.
 ```
 
+[strformat]: https://www.npmjs.com/package/@tkesgar/strformat
+
 ## Usage
 
 Install globally from NPM:
@@ -263,6 +265,12 @@ const context = {
     })()),
 };
 ```
+
+## Changelogs
+
+### v1.0.0
+
+Initial version
 
 ## License
 
