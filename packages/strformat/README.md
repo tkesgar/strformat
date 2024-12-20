@@ -149,7 +149,7 @@ strformat("[hash|slice:0,@cfg.length].[ext|:@cfg.defaultExt]", context);
 ## Performance
 
 `strformat` is faster than most other templating engines without precompilation
-(generating plain JavaScript function from the template).
+(generating optimized JavaScript function from the template).
 
 Consider using precompiled templates if the template is known in advance, or you
 want to render the same template a large number of times.
