@@ -2,14 +2,23 @@
   "name": "@tkesgar/strformat-cli",
   "description": "CLI for strformat",
   "version": "0.0.0",
-  "module": "strformat.ts",
   "type": "module",
-  "devDependencies": {
-    "@types/bun": "^1.1.14"
+  "bin": {
+    "strformat": "./dist/strformat.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prepack": "bun unbuild"
   },
   "dependencies": {
     "commander": "^12.1.0",
     "dayjs": "^1.11.13",
     "@tkesgar/strformat": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.14",
+    "unbuild": "^3.0.1"
   }
 }
