@@ -180,6 +180,7 @@ Possible error codes (see `StrformatErrorCode`):
 | 101        | The context value for a given key is `undefined`                                            |
 | 102        | strformat expects the context value for a given key is a function, but it is not a function |
 | 103        | A pipe sequence evaluates to `undefined`                                                    |
+| 104        | A context function call throws an error                                                     |
 
 ## Performance
 
