@@ -1,0 +1,4 @@
+[install]
+# Remove this in Bun 1.2 (installed by default)
+# https://bun.sh/blog/bun-v1.1.40#new-install-savetextlockfile-in-bunfig-toml
+saveTextLockfile = true
